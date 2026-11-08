@@ -1,0 +1,23 @@
+# Gradle / build output
+.gradle/
+build/
+out/
+
+# Local run directory (worlds, logs, options)
+run/
+
+# Reverse-engineering reports and local binaries (not part of the mod)
+reports/
+libs/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

@@ -1,0 +1,83 @@
+{
+  "activate": {
+    "subtitle": "subtitles.sandevistan.activate",
+    "sounds": [
+      {
+        "name": "sandevistan:activate",
+        "stream": false
+      }
+    ]
+  },
+  "release": {
+    "subtitle": "subtitles.sandevistan.release",
+    "sounds": [
+      {
+        "name": "sandevistan:release",
+        "stream": false
+      }
+    ]
+  },
+  "loop": {
+    "subtitle": "subtitles.sandevistan.loop",
+    "sounds": [
+      {
+        "name": "sandevistan:loop",
+        "stream": true
+      }
+    ]
+  },
+  "install": {
+    "subtitle": "subtitles.sandevistan.install",
+    "sounds": [
+      {
+        "name": "sandevistan:install",
+        "stream": false
+      }
+    ]
+  },
+  "warn": {
+    "subtitle": "subtitles.sandevistan.warn",
+    "sounds": [
+      {
+        "name": "sandevistan:warn",
+        "stream": false
+      }
+    ]
+  },
+  "deny": {
+    "subtitle": "subtitles.sandevistan.deny",
+    "sounds": [
+      {
+        "name": "sandevistan:deny",
+        "stream": false
+      }
+    ]
+  },
+  "psycho_static": {
+    "subtitle": "subtitles.sandevistan.psycho_static",
+    "sounds": [
+      {
+        "name": "sandevistan:psycho_static",
+        "stream": false
+      }
+    ]
+  },
+  "psycho_ringing": {
+    "subtitle": "subtitles.sandevistan.psycho_ringing",
+    "sounds": [
+      {
+        "name": "sandevistan:psycho_ringing",
+        "stream": false
+      }
+    ]
+  },
+  "psycho_flatline": {
+    "subtitle": "subtitles.sandevistan.psycho_flatline",
+    "sounds": [
+      {
+        "name": "sandevistan:psycho_flatline",
+        "stream": false
+      }
+    ]
+  }
+}

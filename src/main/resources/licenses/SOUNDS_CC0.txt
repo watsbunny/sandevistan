@@ -1,0 +1,27 @@
+Sound effects in this mod were made from the following CC0 1.0 (public domain) recordings.
+
+- Heartbeat (single sound) by qubodup - https://opengameart.org/content/heartbeat-single-sound
+- Wind, hit, time morph by qubodup - https://opengameart.org/content/wind-hit-time-morph
+- Sci-Fi RTS War Unit Sounds by qubodup - https://opengameart.org/content/sci-fi-rts-war-unit-sounds
+- Warp Engine Engage Sound by bart - https://opengameart.org/content/warp-engine-engage-sound
+- 68 Workshop Sounds by bart - https://opengameart.org/content/68-workshop-sounds
+- Metal Impact Sounds by BMacZero - https://opengameart.org/content/metal-impact-sounds
+- SFX - Plug In, Plug Out by CleytonKauffman - https://opengameart.org/content/sfx-plug-in-plug-out
+- Electricity Game Sound Pack by faxcorp - https://opengameart.org/content/electricity-game-sound-pack
+- Reversing Time / Stuck in Time by isaiah658 - https://opengameart.org/content/reversing-time-stuck-in-time
+- 50 CC0 Sci-Fi SFX by rubberduck - https://opengameart.org/content/50-cc0-sci-fi-sfx
+- 60 CC0 Sci-Fi SFX by rubberduck - https://opengameart.org/content/60-cc0-sci-fi-sfx
+- Kenney Impact Sounds by Kenney - https://kenney.nl/assets/impact-sounds
+- Kenney Interface Sounds by Kenney - https://kenney.nl/assets/interface-sounds
+- Kenney Sci-Fi Sounds by Kenney - https://kenney.nl/assets/sci-fi-sounds
+
+Which sound uses which recordings:
+- activate - Heartbeat (single sound), 60 CC0 Sci-Fi SFX sfx_06b, Impact Sounds impactPunch_heavy_000, Electricity Game Sound Pack hit, Warp Engine Engage Sound
+- release - 60 CC0 Sci-Fi SFX sfx_06b (reversed), Wind, hit, time morph megaswosh1, Metal Impact Sounds clink2
+- loop - Reversing Time / Stuck in Time, Sci-Fi Sounds spaceEngineLow_002
+- install - SFX - Plug In, Plug Out (Plug-in), Interface Sounds confirmation_004, 68 Workshop Sounds drill short 2
+- warn - 50 CC0 Sci-Fi SFX beep_01
+- deny - Interface Sounds error_005
+- psycho_static - Sci-Fi RTS War Unit Sounds (radio), Electricity Game Sound Pack crackle, Interface Sounds glitch_002 and glitch_004
+- psycho_ringing - Metal Impact Sounds bing1
+- psycho_flatline - 50 CC0 Sci-Fi SFX beep_01

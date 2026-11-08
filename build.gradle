@@ -1,0 +1,52 @@
+plugins {
+    id 'fabric-loom' version '1.7.4'
+    id 'java'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
+
+repositories {
+    mavenCentral()
+    maven { url = 'https://maven.ladysnake.org/releases' }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+    // Satin 1.14.0 is shipped jar-in-jar by the original mod.
+    modImplementation "org.ladysnake:satin:1.14.0"
+    include "org.ladysnake:satin:1.14.0"
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 17
+    options.compilerArgs += ['-Xdiags:verbose']
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+    withSourcesJar()
+}
+
+loom {
+    accessWidenerPath = file('src/main/resources/sandy.accesswidener')
+}
+
+// Keep mod metadata out of the sources jar so it can't be mistaken for a runnable mod.
+tasks.named('sourcesJar') {
+    exclude 'fabric.mod.json'
+    exclude 'sandy.accesswidener'
+    exclude 'sandy.mixins.json'
+    exclude 'sandy.client.mixins.json'
+    exclude 'sandevistan-refmap.json'
+    exclude 'client-sandevistan-refmap.json'
+}
