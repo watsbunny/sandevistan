@@ -53,6 +53,8 @@ public final class OverlayPass {
             fb.copyDepthFrom(main);
             fb.bindWrite(true);
             PoseStack matrices = ctx.getPoseStack();
+            matrices.pushPose();
+            matrices.setIdentity();
             Camera camera = ctx.getCamera();
             Vec3 cam = camera.getPosition();
             EntityRenderDispatcher dispatcher = mc.getEntityRenderDispatcher();
@@ -77,6 +79,7 @@ public final class OverlayPass {
                ShockRings.render(matrices, camera, tickDelta);
                FX.endBatch();
             } finally {
+               matrices.popPose();
                dispatcher.setRenderShadow((Boolean)mc.options.entityShadows().get());
                RenderSystem.enableCull();
                main.bindWrite(true);

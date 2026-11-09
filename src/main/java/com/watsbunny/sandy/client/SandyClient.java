@@ -58,7 +58,7 @@ public final class SandyClient {
    }
 
    @SubscribeEvent
-   public static void onLevelTick(LevelTickEvent.Post event) {
+   public static void onLevelTick(LevelTickEvent.Pre event) {
       if (event.getLevel() instanceof ClientLevel world) {
          startWorldTick(world);
       }
