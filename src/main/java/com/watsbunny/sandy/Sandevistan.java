@@ -12,7 +12,6 @@ import net.minecraft.world.level.GameRules.BooleanValue;
 import net.minecraft.world.level.GameRules.Category;
 import net.minecraft.world.level.GameRules.Key;
 import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
-import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
@@ -22,8 +21,8 @@ import net.minecraftforge.registries.RegisterEvent;
 @Mod(Sandevistan.MOD_ID)
 public final class Sandevistan {
    public static final String MOD_ID = "sandevistan";
-   public static final Item APOGEE = new ApogeeItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC));
-   public static final SimpleParticleType MOTE = new SimpleParticleType(true);
+   public static Item APOGEE;
+   public static SimpleParticleType MOTE;
    public static final Key<BooleanValue> SLOWS_PLAYERS = GameRules.register(
       "sandevistanSlowsPlayers", Category.PLAYER, GameRules.BooleanValue.create(true, (server, rule) -> SandyServer.markAllDirty())
    );
@@ -35,7 +34,6 @@ public final class Sandevistan {
       IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
       modBus.addListener(this::registerRegistries);
       modBus.addListener(this::addCreativeTab);
-      modBus.addListener(this::registerCommands);
       SandyNet.register();
    }
 
@@ -44,8 +42,11 @@ public final class Sandevistan {
    }
 
    private void registerRegistries(RegisterEvent event) {
-      event.register(ForgeRegistries.Keys.ITEMS, id("sandevistan"), () -> APOGEE);
-      event.register(ForgeRegistries.Keys.PARTICLE_TYPES, id("mote"), () -> MOTE);
+      event.register(ForgeRegistries.Keys.ITEMS, id("sandevistan"), () -> {
+         APOGEE = new ApogeeItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC));
+         return APOGEE;
+      });
+      event.register(ForgeRegistries.Keys.PARTICLE_TYPES, id("mote"), () -> MOTE = new SimpleParticleType(true));
 
       for (SoundEvent sound : SandySounds.ALL) {
          event.register(ForgeRegistries.Keys.SOUND_EVENTS, sound.getLocation(), () -> sound);
@@ -58,7 +59,4 @@ public final class Sandevistan {
       }
    }
 
-   private void registerCommands(RegisterCommandsEvent event) {
-      SandyCommand.register(event.getDispatcher());
-   }
 }

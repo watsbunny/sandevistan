@@ -15,6 +15,11 @@ public final class SandyEvents {
    }
 
    @SubscribeEvent
+   public static void onRegisterCommands(net.minecraftforge.event.RegisterCommandsEvent event) {
+      SandyCommand.register(event.getDispatcher());
+   }
+
+   @SubscribeEvent
    public static void onServerTick(TickEvent.ServerTickEvent event) {
       if (event.phase == TickEvent.Phase.END) {
          SandyServer.endServerTick(event.getServer());
