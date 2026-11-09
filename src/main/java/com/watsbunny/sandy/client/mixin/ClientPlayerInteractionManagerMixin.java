@@ -2,24 +2,21 @@ package com.watsbunny.sandy.client.mixin;
 
 import com.watsbunny.sandy.SlowClock;
 import com.watsbunny.sandy.client.SandyClient;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.minecraft.client.network.ClientPlayerInteractionManager;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
+import net.minecraft.client.multiplayer.MultiPlayerGameMode;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Environment(EnvType.CLIENT)
-@Mixin({ClientPlayerInteractionManager.class})
+@Mixin({MultiPlayerGameMode.class})
 public abstract class ClientPlayerInteractionManagerMixin {
    public ClientPlayerInteractionManagerMixin() {
    }
 
    @Inject(
-      method = {"updateBlockBreakingProgress"},
+      method = {"continueDestroyBlock"},
       at = {@At("HEAD")},
       cancellable = true
    )

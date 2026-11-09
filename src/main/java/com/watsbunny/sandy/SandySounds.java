@@ -1,8 +1,6 @@
 package com.watsbunny.sandy;
 
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
-import net.minecraft.sound.SoundEvent;
+import net.minecraft.sounds.SoundEvent;
 
 public final class SandySounds {
    public static final SoundEvent ACTIVATE = of("activate");
@@ -14,17 +12,14 @@ public final class SandySounds {
    public static final SoundEvent PSYCHO_STATIC = of("psycho_static");
    public static final SoundEvent PSYCHO_RINGING = of("psycho_ringing");
    public static final SoundEvent PSYCHO_FLATLINE = of("psycho_flatline");
+   public static final SoundEvent[] ALL = new SoundEvent[]{
+      ACTIVATE, RELEASE, LOOP, INSTALL, WARN, DENY, PSYCHO_STATIC, PSYCHO_RINGING, PSYCHO_FLATLINE
+   };
 
    private SandySounds() {
    }
 
    private static SoundEvent of(String name) {
-      return SoundEvent.of(Sandevistan.id(name));
-   }
-
-   static void register() {
-      for (SoundEvent s : new SoundEvent[]{ACTIVATE, RELEASE, LOOP, INSTALL, WARN, DENY, PSYCHO_STATIC, PSYCHO_RINGING, PSYCHO_FLATLINE}) {
-         Registry.register(Registries.SOUND_EVENT, s.getId(), s);
-      }
+      return SoundEvent.createVariableRangeEvent(Sandevistan.id(name));
    }
 }

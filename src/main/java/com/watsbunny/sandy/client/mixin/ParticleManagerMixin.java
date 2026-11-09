@@ -3,18 +3,15 @@ package com.watsbunny.sandy.client.mixin;
 import com.watsbunny.sandy.SlowClock;
 import com.watsbunny.sandy.client.MoteParticle;
 import com.watsbunny.sandy.client.SandyClient;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
 import net.minecraft.client.particle.Particle;
-import net.minecraft.client.particle.ParticleManager;
+import net.minecraft.client.particle.ParticleEngine;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Environment(EnvType.CLIENT)
-@Mixin({ParticleManager.class})
+@Mixin({ParticleEngine.class})
 public abstract class ParticleManagerMixin {
    public ParticleManagerMixin() {
    }
@@ -34,7 +31,7 @@ public abstract class ParticleManagerMixin {
    }
 
    @ModifyVariable(
-      method = {"renderParticles"},
+      method = {"render"},
       at = @At("HEAD"),
       argsOnly = true
    )

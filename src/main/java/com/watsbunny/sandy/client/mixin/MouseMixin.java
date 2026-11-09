@@ -2,24 +2,21 @@ package com.watsbunny.sandy.client.mixin;
 
 import com.watsbunny.sandy.SlowClock;
 import com.watsbunny.sandy.client.SandyClient;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.minecraft.client.Mouse;
+import net.minecraft.client.MouseHandler;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 
-@Environment(EnvType.CLIENT)
-@Mixin({Mouse.class})
+@Mixin({MouseHandler.class})
 public abstract class MouseMixin {
    public MouseMixin() {
    }
 
    @ModifyArg(
-      method = {"updateMouse"},
+      method = {"turnPlayer"},
       at = @At(
          value = "INVOKE",
-         target = "Lnet/minecraft/client/network/ClientPlayerEntity;changeLookDirection(DD)V"
+         target = "Lnet/minecraft/client/player/LocalPlayer;turn(DD)V"
       ),
       index = 0
    )
@@ -28,10 +25,10 @@ public abstract class MouseMixin {
    }
 
    @ModifyArg(
-      method = {"updateMouse"},
+      method = {"turnPlayer"},
       at = @At(
          value = "INVOKE",
-         target = "Lnet/minecraft/client/network/ClientPlayerEntity;changeLookDirection(DD)V"
+         target = "Lnet/minecraft/client/player/LocalPlayer;turn(DD)V"
       ),
       index = 1
    )

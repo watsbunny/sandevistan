@@ -5,14 +5,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.entity.Entity;
-import net.minecraft.network.PacketByteBuf;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.world.entity.Entity;
 
-@Environment(EnvType.CLIENT)
 public final class ClientUsers {
    private static final Map<Integer, Integer> FLAGS = new HashMap<>();
    public static boolean selfInstalled;
@@ -33,7 +30,7 @@ public final class ClientUsers {
       return t == null ? 0 : t;
    }
 
-   static ClientUsers.Packet readUsers(PacketByteBuf buf) {
+   static ClientUsers.Packet readUsers(FriendlyByteBuf buf) {
       boolean slow = buf.readBoolean();
       int n = buf.readVarInt();
       int[] ids = new int[n];
@@ -59,7 +56,7 @@ public final class ClientUsers {
          TIERS.put(p.ids()[i], p.tiers()[i]);
       }
 
-      MinecraftClient mc = MinecraftClient.getInstance();
+      Minecraft mc = Minecraft.getInstance();
       if (mc.player != null && selfInstalled) {
          FLAGS.put(mc.player.getId(), 1 | (selfActive ? 2 : 0));
       }
@@ -77,7 +74,7 @@ public final class ClientUsers {
       cooldown = cd;
       cooldownMax = Math.max(1, cdMax);
       selfAt = (double)SandyClient.clientTicks;
-      MinecraftClient mc = MinecraftClient.getInstance();
+      Minecraft mc = Minecraft.getInstance();
       if (mc.player != null) {
          if (selfInstalled) {
             FLAGS.put(mc.player.getId(), 1 | (selfActive ? 2 : 0));
@@ -108,12 +105,12 @@ public final class ClientUsers {
       return (flags(e) & 2) != 0;
    }
 
-   public static List<Entity> activeEntities(ClientWorld world) {
+   public static List<Entity> activeEntities(ClientLevel world) {
       List<Entity> out = new ArrayList<>(1);
 
       for (Entry<Integer, Integer> en : FLAGS.entrySet()) {
          if ((en.getValue() & 2) != 0) {
-            Entity e = world.getEntityById(en.getKey());
+            Entity e = world.getEntity(en.getKey());
             if (e != null) {
                out.add(e);
             }
@@ -123,11 +120,11 @@ public final class ClientUsers {
       return out;
    }
 
-   public static List<Entity> installedEntities(ClientWorld world) {
+   public static List<Entity> installedEntities(ClientLevel world) {
       List<Entity> out = new ArrayList<>(1);
 
       for (Integer id : FLAGS.keySet()) {
-         Entity e = world.getEntityById(id);
+         Entity e = world.getEntity(id);
          if (e != null) {
             out.add(e);
          }
@@ -135,8 +132,6 @@ public final class ClientUsers {
 
       return out;
    }
-
-   @Environment(EnvType.CLIENT)
    static record Packet(boolean slowPlayers, int[] ids, int[] flags, int[] tiers) {
    }
 }

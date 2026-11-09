@@ -1,26 +1,20 @@
 package com.watsbunny.sandy.client;
 
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import java.util.Optional;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.render.VertexFormats;
-import net.minecraft.client.render.RenderLayer.MultiPhase;
-import net.minecraft.client.render.RenderPhase.TextureBase;
-import net.minecraft.client.render.VertexConsumerProvider.Immediate;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.resources.ResourceLocation;
 
-@Environment(EnvType.CLIENT)
-final class GhostConsumers implements VertexConsumerProvider {
-   private final Immediate out;
+final class GhostConsumers implements MultiBufferSource {
+   private final BufferSource out;
    private final int r;
    private final int g;
    private final int b;
    private final int a;
 
-   private GhostConsumers(Immediate out, int rgb, float alpha) {
+   private GhostConsumers(BufferSource out, int rgb, float alpha) {
       this.out = out;
       this.r = rgb >> 16 & 0xFF;
       this.g = rgb >> 8 & 0xFF;
@@ -28,21 +22,21 @@ final class GhostConsumers implements VertexConsumerProvider {
       this.a = Math.max(0, Math.min(255, Math.round(alpha * 255.0F)));
    }
 
-   static GhostConsumers of(Immediate out, int rgb, float alpha) {
+   static GhostConsumers of(BufferSource out, int rgb, float alpha) {
       return new GhostConsumers(out, rgb, alpha);
    }
 
-   public VertexConsumer getBuffer(RenderLayer layer) {
-      if (layer.getVertexFormat() != VertexFormats.POSITION_COLOR_TEXTURE_OVERLAY_LIGHT_NORMAL) {
+   public VertexConsumer getBuffer(RenderType layer) {
+      if (layer.format() != DefaultVertexFormat.NEW_ENTITY) {
          return GhostConsumers.Noop.INSTANCE;
-      } else if (layer != RenderLayer.getArmorGlint()
-         && layer != RenderLayer.getArmorEntityGlint()
-         && layer != RenderLayer.getGlint()
-         && layer != RenderLayer.getEntityGlint()
-         && layer != RenderLayer.getDirectGlint()
-         && layer != RenderLayer.getDirectEntityGlint()
-         && layer != RenderLayer.getGlintTranslucent()) {
-         Identifier tex = textureOf(layer);
+      } else if (layer != RenderType.armorGlint()
+         && layer != RenderType.armorEntityGlint()
+         && layer != RenderType.glint()
+         && layer != RenderType.entityGlint()
+         && layer != RenderType.glintDirect()
+         && layer != RenderType.entityGlintDirect()
+         && layer != RenderType.glintTranslucent()) {
+         ResourceLocation tex = textureOf(layer);
          return (VertexConsumer)(tex == null
             ? GhostConsumers.Noop.INSTANCE
             : new GhostConsumers.Tint(this.out.getBuffer(SandyLayers.ghost(tex)), this.r, this.g, this.b, this.a));
@@ -51,21 +45,16 @@ final class GhostConsumers implements VertexConsumerProvider {
       }
    }
 
-   static Identifier textureOf(RenderLayer layer) {
-      if (layer instanceof MultiPhase mp) {
-         TextureBase t = mp.getPhases().texture;
-         if (t == null) {
-            return null;
-         } else {
-            Optional<Identifier> id = t.getId();
-            return id.orElse(null);
+   static ResourceLocation textureOf(RenderType layer) {
+      if (layer instanceof RenderType.CompositeRenderType mp) {
+         if (mp.state().textureState instanceof net.minecraft.client.renderer.RenderStateShard.TextureStateShard ts) {
+            return ts.texture.orElse(null);
          }
+         return null;
       } else {
          return null;
       }
    }
-
-   @Environment(EnvType.CLIENT)
    static final class Noop implements VertexConsumer {
       static final GhostConsumers.Noop INSTANCE = new GhostConsumers.Noop();
 
@@ -80,15 +69,15 @@ final class GhostConsumers implements VertexConsumerProvider {
          return this;
       }
 
-      public VertexConsumer texture(float u, float v) {
+      public VertexConsumer uv(float u, float v) {
          return this;
       }
 
-      public VertexConsumer overlay(int u, int v) {
+      public VertexConsumer overlayCoords(int u, int v) {
          return this;
       }
 
-      public VertexConsumer light(int u, int v) {
+      public VertexConsumer uv2(int u, int v) {
          return this;
       }
 
@@ -96,17 +85,15 @@ final class GhostConsumers implements VertexConsumerProvider {
          return this;
       }
 
-      public void next() {
+      public void endVertex() {
       }
 
-      public void fixedColor(int red, int green, int blue, int alpha) {
+      public void defaultColor(int red, int green, int blue, int alpha) {
       }
 
-      public void unfixColor() {
+      public void unsetDefaultColor() {
       }
    }
-
-   @Environment(EnvType.CLIENT)
    private static final class Tint implements VertexConsumer {
       private final VertexConsumer d;
       private final int r;
@@ -132,18 +119,18 @@ final class GhostConsumers implements VertexConsumerProvider {
          return this;
       }
 
-      public VertexConsumer texture(float u, float v) {
-         this.d.texture(u, v);
+      public VertexConsumer uv(float u, float v) {
+         this.d.uv(u, v);
          return this;
       }
 
-      public VertexConsumer overlay(int u, int v) {
-         this.d.overlay(u, v);
+      public VertexConsumer overlayCoords(int u, int v) {
+         this.d.overlayCoords(u, v);
          return this;
       }
 
-      public VertexConsumer light(int u, int v) {
-         this.d.light(u, v);
+      public VertexConsumer uv2(int u, int v) {
+         this.d.uv2(u, v);
          return this;
       }
 
@@ -152,14 +139,14 @@ final class GhostConsumers implements VertexConsumerProvider {
          return this;
       }
 
-      public void next() {
-         this.d.next();
+      public void endVertex() {
+         this.d.endVertex();
       }
 
-      public void fixedColor(int red, int green, int blue, int alpha) {
+      public void defaultColor(int red, int green, int blue, int alpha) {
       }
 
-      public void unfixColor() {
+      public void unsetDefaultColor() {
       }
    }
 }

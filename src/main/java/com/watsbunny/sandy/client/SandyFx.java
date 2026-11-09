@@ -4,11 +4,8 @@ import com.watsbunny.sandy.Sandevistan;
 import com.watsbunny.sandy.SlowClock;
 import ladysnake.satin.api.managed.ManagedShaderEffect;
 import ladysnake.satin.api.managed.ShaderEffectManager;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 
-@Environment(EnvType.CLIENT)
 public final class SandyFx {
    private static final ManagedShaderEffect POST = ShaderEffectManager.getInstance().manage(Sandevistan.id("shaders/post/sandy.json"));
    private static boolean active;
@@ -37,10 +34,10 @@ public final class SandyFx {
       return active;
    }
 
-   static void tick(MinecraftClient mc) {
-      if (active && mc.world != null && mc.world.random.nextInt(50) == 0) {
+   static void tick(Minecraft mc) {
+      if (active && mc.level != null && mc.level.random.nextInt(50) == 0) {
          glitchAt = (double)SandyClient.clientTicks;
-         glitchAmt = 0.18F + mc.world.random.nextFloat() * 0.22F;
+         glitchAmt = 0.18F + mc.level.random.nextFloat() * 0.22F;
       }
 
       if (active && (mc.player == null || !ClientUsers.selfActive) && (double)SandyClient.clientTicks - onAt > 40.0) {
@@ -155,7 +152,7 @@ public final class SandyFx {
          double now = SandyClient.now(tickDelta);
          float[] sh = shock(now);
          float[] fl = flash(now);
-         MinecraftClient mc = MinecraftClient.getInstance();
+         Minecraft mc = Minecraft.getInstance();
          POST.setUniformValue("Grade", grade(now));
          POST.setUniformValue("Reveal", reveal(now));
          POST.setUniformValue("Shock", sh[0], sh[1], sh[2]);
@@ -165,7 +162,7 @@ public final class SandyFx {
          POST.setUniformValue("Time", (float)(now / 20.0 % 1000.0));
          POST.setSamplerUniform("OverlaySampler", OverlayPass.target());
          POST.render(tickDelta);
-         mc.getFramebuffer().beginWrite(true);
+         mc.getMainRenderTarget().bindWrite(true);
       }
    }
 }

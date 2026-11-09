@@ -1,17 +1,14 @@
 package com.watsbunny.sandy.client;
 
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import java.util.ArrayList;
 import java.util.List;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.minecraft.client.render.Camera;
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.entity.Entity;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.client.Camera;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 
-@Environment(EnvType.CLIENT)
 final class ShockRings {
    private static final List<ShockRings.Ring> RINGS = new ArrayList<>();
    private static final int SEG = 96;
@@ -23,7 +20,7 @@ final class ShockRings {
    }
 
    static void spawn(Entity e, boolean out) {
-      RINGS.add(new ShockRings.Ring(e.getPos().add(0.0, 0.06, 0.0), (double)SandyClient.clientTicks, out));
+      RINGS.add(new ShockRings.Ring(e.position().add(0.0, 0.06, 0.0), (double)SandyClient.clientTicks, out));
    }
 
    static void clear() {
@@ -39,12 +36,12 @@ final class ShockRings {
       RINGS.removeIf(r -> now - r.start > (double)((r.out ? 14.0F : 9.0F) + 1.0F));
    }
 
-   static void render(MatrixStack matrices, Camera camera, float tickDelta) {
+   static void render(PoseStack matrices, Camera camera, float tickDelta) {
       if (!RINGS.isEmpty()) {
          double now = SandyClient.now(tickDelta);
-         Vec3d cam = camera.getPos();
+         Vec3 cam = camera.getPosition();
          VertexConsumer vc = OverlayPass.FX.getBuffer(SandyLayers.GLOW);
-         Matrix4f m = matrices.peek().getPositionMatrix();
+         Matrix4f m = matrices.last().pose();
 
          for (ShockRings.Ring r : RINGS) {
             float t = (float)(now - r.start);
@@ -217,10 +214,8 @@ final class ShockRings {
    }
 
    static void v(VertexConsumer vc, Matrix4f m, float x, float y, float z, int rgb, float a) {
-      vc.vertex(m, x, y, z).color(rgb >> 16 & 0xFF, rgb >> 8 & 0xFF, rgb & 0xFF, Math.max(0, Math.min(255, (int)(a * 255.0F)))).next();
+      vc.vertex(m, x, y, z).color(rgb >> 16 & 0xFF, rgb >> 8 & 0xFF, rgb & 0xFF, Math.max(0, Math.min(255, (int)(a * 255.0F)))).endVertex();
    }
-
-   @Environment(EnvType.CLIENT)
-   private static record Ring(Vec3d pos, double start, boolean out) {
+   private static record Ring(Vec3 pos, double start, boolean out) {
    }
 }

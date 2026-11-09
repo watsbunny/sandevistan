@@ -1,47 +1,44 @@
 package com.watsbunny.sandy.client.mixin;
 
+import com.mojang.blaze3d.vertex.PoseStack;
 import com.watsbunny.sandy.client.SandyClient;
 import com.watsbunny.sandy.client.SandyFx;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.minecraft.client.render.GameRenderer;
-import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.client.renderer.GameRenderer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Environment(EnvType.CLIENT)
 @Mixin({GameRenderer.class})
 public abstract class GameRendererMixin {
    public GameRendererMixin() {
    }
 
    @Inject(
-      method = {"renderWorld"},
+      method = {"renderLevel"},
       at = {@At(
          value = "INVOKE",
-         target = "Lnet/minecraft/client/render/GameRenderer;renderHand(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/Camera;F)V"
+         target = "Lnet/minecraft/client/renderer/GameRenderer;renderItemInHand(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/Camera;F)V"
       )}
    )
-   private void apogee$beforeHand(float tickDelta, long limitTime, MatrixStack matrices, CallbackInfo ci) {
+   private void apogee$beforeHand(float tickDelta, long limitTime, PoseStack matrices, CallbackInfo ci) {
       SandyFx.renderPost(tickDelta);
    }
 
    @Inject(
-      method = {"renderWorld"},
+      method = {"renderLevel"},
       at = {@At("TAIL")}
    )
-   private void apogee$tail(float tickDelta, long limitTime, MatrixStack matrices, CallbackInfo ci) {
+   private void apogee$tail(float tickDelta, long limitTime, PoseStack matrices, CallbackInfo ci) {
       SandyFx.renderPost(tickDelta);
    }
 
    @ModifyArg(
-      method = {"renderWorld"},
+      method = {"renderLevel"},
       at = @At(
          value = "INVOKE",
-         target = "Lnet/minecraft/client/render/Camera;update(Lnet/minecraft/world/BlockView;Lnet/minecraft/entity/Entity;ZZF)V"
+         target = "Lnet/minecraft/client/Camera;setup(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/world/entity/Entity;ZZF)V"
       ),
       index = 4
    )
@@ -50,10 +47,10 @@ public abstract class GameRendererMixin {
    }
 
    @ModifyArg(
-      method = {"renderWorld"},
+      method = {"renderLevel"},
       at = @At(
          value = "INVOKE",
-         target = "Lnet/minecraft/client/render/GameRenderer;renderHand(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/Camera;F)V"
+         target = "Lnet/minecraft/client/renderer/GameRenderer;renderItemInHand(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/Camera;F)V"
       ),
       index = 2
    )
@@ -62,10 +59,10 @@ public abstract class GameRendererMixin {
    }
 
    @ModifyArg(
-      method = {"renderWorld"},
+      method = {"renderLevel"},
       at = @At(
          value = "INVOKE",
-         target = "Lnet/minecraft/client/render/GameRenderer;bobView(Lnet/minecraft/client/util/math/MatrixStack;F)V"
+         target = "Lnet/minecraft/client/renderer/GameRenderer;bobView(Lcom/mojang/blaze3d/vertex/PoseStack;F)V"
       ),
       index = 1
    )
@@ -74,10 +71,10 @@ public abstract class GameRendererMixin {
    }
 
    @ModifyArg(
-      method = {"renderWorld"},
+      method = {"renderLevel"},
       at = @At(
          value = "INVOKE",
-         target = "Lnet/minecraft/client/render/GameRenderer;tiltViewWhenHurt(Lnet/minecraft/client/util/math/MatrixStack;F)V"
+         target = "Lnet/minecraft/client/renderer/GameRenderer;bobHurt(Lcom/mojang/blaze3d/vertex/PoseStack;F)V"
       ),
       index = 1
    )
@@ -86,10 +83,10 @@ public abstract class GameRendererMixin {
    }
 
    @ModifyArg(
-      method = {"renderWorld"},
+      method = {"renderLevel"},
       at = @At(
          value = "INVOKE",
-         target = "Lnet/minecraft/client/render/GameRenderer;updateTargetedEntity(F)V"
+         target = "Lnet/minecraft/client/renderer/GameRenderer;pick(F)V"
       ),
       index = 0
    )

@@ -2,44 +2,42 @@ package com.watsbunny.sandy.cyber;
 
 import com.watsbunny.sandy.SandyServer;
 import java.util.List;
-import net.minecraft.client.item.TooltipContext;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Item.Settings;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Hand;
-import net.minecraft.util.TypedActionResult;
-import net.minecraft.world.World;
-import org.jetbrains.annotations.Nullable;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.level.Level;
 
 public final class ApogeeItem extends Item {
-   public ApogeeItem(Settings settings) {
+   public ApogeeItem(Properties settings) {
       super(settings);
    }
 
-   public TypedActionResult<ItemStack> use(World world, PlayerEntity user, Hand hand) {
-      ItemStack stack = user.getStackInHand(hand);
+   public InteractionResultHolder<ItemStack> use(Level world, Player user, InteractionHand hand) {
+      ItemStack stack = user.getItemInHand(hand);
       if (Spine.of(user).installed) {
-         if (!world.isClient) {
-            user.sendMessage(Text.translatable("message.sandevistan.already_installed"), true);
+         if (!world.isClientSide) {
+            user.displayClientMessage(Component.translatable("message.sandevistan.already_installed"), true);
          }
 
-         return TypedActionResult.fail(stack);
+         return InteractionResultHolder.fail(stack);
       } else {
-         if (user instanceof ServerPlayerEntity sp && SandyServer.install(sp) && !sp.getAbilities().creativeMode) {
-            stack.decrement(1);
+         if (user instanceof ServerPlayer sp && SandyServer.install(sp) && !sp.getAbilities().instabuild) {
+            stack.shrink(1);
          }
 
-         return TypedActionResult.success(stack, world.isClient);
+         return InteractionResultHolder.sidedSuccess(stack, world.isClientSide);
       }
    }
 
-   public void appendTooltip(ItemStack stack, @Nullable World world, List<Text> tooltip, TooltipContext context) {
-      tooltip.add(Text.translatable("item.sandevistan.sandevistan.tooltip1").formatted(Formatting.GRAY));
-      tooltip.add(Text.translatable("item.sandevistan.sandevistan.tooltip2").formatted(Formatting.GRAY));
-      tooltip.add(Text.translatable("item.sandevistan.sandevistan.tooltip3").formatted(Formatting.DARK_RED));
+   public void appendHoverText(ItemStack stack, Level world, List<Component> tooltip, TooltipFlag context) {
+      tooltip.add(Component.translatable("item.sandevistan.sandevistan.tooltip1").withStyle(ChatFormatting.GRAY));
+      tooltip.add(Component.translatable("item.sandevistan.sandevistan.tooltip2").withStyle(ChatFormatting.GRAY));
+      tooltip.add(Component.translatable("item.sandevistan.sandevistan.tooltip3").withStyle(ChatFormatting.DARK_RED));
    }
 }

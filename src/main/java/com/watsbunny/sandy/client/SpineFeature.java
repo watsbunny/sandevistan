@@ -1,38 +1,35 @@
 package com.watsbunny.sandy.client;
 
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.PoseStack.Pose;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.watsbunny.sandy.Sandevistan;
 import java.util.Random;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.minecraft.client.network.AbstractClientPlayerEntity;
-import net.minecraft.client.render.OverlayTexture;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.render.entity.feature.FeatureRenderer;
-import net.minecraft.client.render.entity.feature.FeatureRendererContext;
-import net.minecraft.client.render.entity.model.PlayerEntityModel;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.client.util.math.MatrixStack.Entry;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.model.PlayerModel;
+import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.entity.RenderLayerParent;
+import net.minecraft.client.renderer.entity.layers.RenderLayer;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.resources.ResourceLocation;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 
-@Environment(EnvType.CLIENT)
-public final class SpineFeature extends FeatureRenderer<AbstractClientPlayerEntity, PlayerEntityModel<AbstractClientPlayerEntity>> {
-   private static final Identifier TEX = Sandevistan.id("textures/entity/spine.png");
+public final class SpineFeature extends RenderLayer<AbstractClientPlayer, PlayerModel<AbstractClientPlayer>> {
+   private static final ResourceLocation TEX = Sandevistan.id("textures/entity/spine.png");
    private static final int SEGMENTS = 7;
    private static final float TEX_SIZE = 32.0F;
 
-   SpineFeature(FeatureRendererContext<AbstractClientPlayerEntity, PlayerEntityModel<AbstractClientPlayerEntity>> ctx) {
+   SpineFeature(RenderLayerParent<AbstractClientPlayer, PlayerModel<AbstractClientPlayer>> ctx) {
       super(ctx);
    }
 
    public void render(
-      MatrixStack matrices,
-      VertexConsumerProvider consumers,
+      PoseStack matrices,
+      MultiBufferSource consumers,
       int light,
-      AbstractClientPlayerEntity player,
+      AbstractClientPlayer player,
       float limbAngle,
       float limbDistance,
       float tickDelta,
@@ -41,21 +38,21 @@ public final class SpineFeature extends FeatureRenderer<AbstractClientPlayerEnti
       float headPitch
    ) {
       if (ClientUsers.installed(player) && !player.isInvisible()) {
-         matrices.push();
-         ((PlayerEntityModel)this.getContextModel()).body.rotate(matrices);
+         matrices.pushPose();
+         ((PlayerModel)this.getParentModel()).body.translateAndRotate(matrices);
          draw(matrices, consumers, light, player, tickDelta);
-         matrices.pop();
+         matrices.popPose();
       }
    }
 
-   public static void draw(MatrixStack matrices, VertexConsumerProvider consumers, int light, AbstractClientPlayerEntity player, float tickDelta) {
-      matrices.push();
+   public static void draw(PoseStack matrices, MultiBufferSource consumers, int light, AbstractClientPlayer player, float tickDelta) {
+      matrices.pushPose();
       matrices.scale(0.0625F, 0.0625F, 0.0625F);
-      Entry entry = matrices.peek();
-      Matrix4f m = entry.getPositionMatrix();
-      Matrix3f n = entry.getNormalMatrix();
-      VertexConsumer metal = consumers.getBuffer(RenderLayer.getEntityCutoutNoCull(TEX));
-      int ov = OverlayTexture.DEFAULT_UV;
+      Pose entry = matrices.last();
+      Matrix4f m = entry.pose();
+      Matrix3f n = entry.normal();
+      VertexConsumer metal = consumers.getBuffer(RenderType.entityCutoutNoCull(TEX));
+      int ov = OverlayTexture.NO_OVERLAY;
       box(metal, m, n, -0.45F, 0.2F, 2.05F, 0.45F, 11.8F, 2.55F, 16, 0, 4, 32, 16, 0, 4, 32, light, ov);
 
       for (int i = 0; i < 7; i++) {
@@ -89,7 +86,7 @@ public final class SpineFeature extends FeatureRenderer<AbstractClientPlayerEnti
          veins(glow, m, player.getId(), now, (charge - 0.5F) * 2.0F);
       }
 
-      matrices.pop();
+      matrices.popPose();
    }
 
    private static float segY(int i) {
@@ -204,7 +201,7 @@ public final class SpineFeature extends FeatureRenderer<AbstractClientPlayerEnti
    private static void ev(
       VertexConsumer vc, Matrix4f m, Matrix3f n, float x, float y, float z, float u, float v, float nx, float ny, float nz, int light, int ov
    ) {
-      vc.vertex(m, x, y, z).color(255, 255, 255, 255).texture(u, v).overlay(ov).light(light).normal(n, nx, ny, nz).next();
+      vc.vertex(m, x, y, z).color(255, 255, 255, 255).uv(u, v).overlayCoords(ov).uv2(light).normal(n, nx, ny, nz).endVertex();
    }
 
    private static void rect(VertexConsumer vc, Matrix4f m, float x0, float y0, float x1, float y1, float z, int rgb, float a) {

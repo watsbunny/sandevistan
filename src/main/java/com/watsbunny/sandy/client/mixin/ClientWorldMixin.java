@@ -3,23 +3,20 @@ package com.watsbunny.sandy.client.mixin;
 import com.watsbunny.sandy.SandyWorld;
 import com.watsbunny.sandy.SlowClock;
 import com.watsbunny.sandy.client.SandyClient;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.entity.Entity;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.world.entity.Entity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Environment(EnvType.CLIENT)
-@Mixin({ClientWorld.class})
+@Mixin({ClientLevel.class})
 public abstract class ClientWorldMixin {
    public ClientWorldMixin() {
    }
 
    @Inject(
-      method = {"tickEntity"},
+      method = {"tickNonPassenger"},
       at = {@At("HEAD")},
       cancellable = true
    )

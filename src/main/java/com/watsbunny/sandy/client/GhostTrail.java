@@ -1,21 +1,18 @@
 package com.watsbunny.sandy.client;
 
+import com.mojang.blaze3d.vertex.PoseStack;
 import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.Camera;
-import net.minecraft.client.render.entity.EntityRenderDispatcher;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.client.Camera;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.phys.Vec3;
 
-@Environment(EnvType.CLIENT)
 public final class GhostTrail {
    static final float LIFE = 32.0F;
    static final int MAX = 44;
@@ -39,10 +36,10 @@ public final class GhostTrail {
       return false;
    }
 
-   static void tick(MinecraftClient mc) {
+   static void tick(Minecraft mc) {
       long now = SandyClient.clientTicks;
 
-      for (Entity e : ClientUsers.activeEntities(mc.world)) {
+      for (Entity e : ClientUsers.activeEntities(mc.level)) {
          if (e instanceof LivingEntity) {
             LivingEntity le = (LivingEntity)e;
             if (e.isAlive()) {
@@ -50,22 +47,22 @@ public final class GhostTrail {
                GhostTrail.Snap last = q.peekLast();
                boolean moved = last == null
                   || sq(last.x - e.getX(), last.y - e.getY(), last.z - e.getZ()) > 0.010000000000000002
-                  || Math.abs(last.bodyYaw - le.bodyYaw) > 12.0F
-                  || le.handSwingProgress > 0.0F && Math.abs(last.swing - le.handSwingProgress) > 0.15F;
+                  || Math.abs(last.bodyYaw - le.yBodyRot) > 12.0F
+                  || le.attackAnim > 0.0F && Math.abs(last.swing - le.attackAnim) > 0.15F;
                if (moved) {
                   q.addLast(
                      new GhostTrail.Snap(
                         e.getX(),
                         e.getY(),
                         e.getZ(),
-                        le.bodyYaw,
-                        le.headYaw,
-                        e.getYaw(),
-                        e.getPitch(),
-                        le.limbAnimator.getPos(),
-                        le.limbAnimator.getSpeed(),
-                        le.handSwingProgress,
-                        e.age,
+                        le.yBodyRot,
+                        le.yHeadRot,
+                        e.getYRot(),
+                        e.getXRot(),
+                        le.walkAnimation.position(),
+                        le.walkAnimation.speed(),
+                        le.attackAnim,
+                        e.tickCount,
                         now
                      )
                   );
@@ -88,7 +85,7 @@ public final class GhostTrail {
             q.pollFirst();
          }
 
-         if (q.isEmpty() || mc.world.getEntityById(en.getKey()) == null) {
+         if (q.isEmpty() || mc.level.getEntity(en.getKey()) == null) {
             it.remove();
          }
       }
@@ -115,19 +112,19 @@ public final class GhostTrail {
       return r << 16 | g << 8 | bl;
    }
 
-   static void render(MatrixStack matrices, Camera camera, float tickDelta) {
+   static void render(PoseStack matrices, Camera camera, float tickDelta) {
       if (!TRAILS.isEmpty()) {
-         MinecraftClient mc = MinecraftClient.getInstance();
+         Minecraft mc = Minecraft.getInstance();
          EntityRenderDispatcher dispatcher = mc.getEntityRenderDispatcher();
          double now = SandyClient.now(tickDelta);
-         Vec3d cam = camera.getPos();
-         boolean firstPerson = !camera.isThirdPerson();
+         Vec3 cam = camera.getPosition();
+         boolean firstPerson = !camera.isDetached();
          SandyShaders.setTime((float)(now / 20.0));
 
          for (Entry<Integer, ArrayDeque<GhostTrail.Snap>> en : TRAILS.entrySet()) {
-            Entity e = mc.world.getEntityById(en.getKey());
+            Entity e = mc.level.getEntity(en.getKey());
             if (e instanceof LivingEntity le && !en.getValue().isEmpty()) {
-               boolean self = e == camera.getFocusedEntity();
+               boolean self = e == camera.getEntity();
                double bodyX = e.getX();
                double bodyY = e.getY();
                double bodyZ = e.getZ();
@@ -170,8 +167,6 @@ public final class GhostTrail {
          }
       }
    }
-
-   @Environment(EnvType.CLIENT)
    private static final class PoseSwap {
       float bodyYaw;
       float prevBodyYaw;
@@ -193,55 +188,53 @@ public final class GhostTrail {
 
       static GhostTrail.PoseSwap save(LivingEntity e) {
          GhostTrail.PoseSwap p = new GhostTrail.PoseSwap();
-         p.bodyYaw = e.bodyYaw;
-         p.prevBodyYaw = e.prevBodyYaw;
-         p.headYaw = e.headYaw;
-         p.prevHeadYaw = e.prevHeadYaw;
-         p.yaw = e.getYaw();
-         p.prevYaw = e.prevYaw;
-         p.pitch = e.getPitch();
-         p.prevPitch = e.prevPitch;
-         p.swing = e.handSwingProgress;
-         p.lastSwing = e.lastHandSwingProgress;
-         p.limbPos = e.limbAnimator.pos;
-         p.limbSpeed = e.limbAnimator.speed;
-         p.limbPrev = e.limbAnimator.prevSpeed;
-         p.age = e.age;
+         p.bodyYaw = e.yBodyRot;
+         p.prevBodyYaw = e.yBodyRotO;
+         p.headYaw = e.yHeadRot;
+         p.prevHeadYaw = e.yHeadRotO;
+         p.yaw = e.getYRot();
+         p.prevYaw = e.yRotO;
+         p.pitch = e.getXRot();
+         p.prevPitch = e.xRotO;
+         p.swing = e.attackAnim;
+         p.lastSwing = e.oAttackAnim;
+         p.limbPos = e.walkAnimation.position;
+         p.limbSpeed = e.walkAnimation.speed;
+         p.limbPrev = e.walkAnimation.speedOld;
+         p.age = e.tickCount;
          return p;
       }
 
       void apply(LivingEntity e, GhostTrail.Snap s) {
-         e.bodyYaw = e.prevBodyYaw = s.bodyYaw();
-         e.headYaw = e.prevHeadYaw = s.headYaw();
-         e.setYaw(s.yaw());
-         e.prevYaw = s.yaw();
-         e.setPitch(s.pitch());
-         e.prevPitch = s.pitch();
-         e.handSwingProgress = e.lastHandSwingProgress = s.swing();
-         e.limbAnimator.pos = s.limbPos();
-         e.limbAnimator.speed = e.limbAnimator.prevSpeed = s.limbSpeed();
-         e.age = s.age();
+         e.yBodyRot = e.yBodyRotO = s.bodyYaw();
+         e.yHeadRot = e.yHeadRotO = s.headYaw();
+         e.setYRot(s.yaw());
+         e.yRotO = s.yaw();
+         e.setXRot(s.pitch());
+         e.xRotO = s.pitch();
+         e.attackAnim = e.oAttackAnim = s.swing();
+         e.walkAnimation.position = s.limbPos();
+         e.walkAnimation.speed = e.walkAnimation.speedOld = s.limbSpeed();
+         e.tickCount = s.age();
       }
 
       void restore(LivingEntity e) {
-         e.bodyYaw = this.bodyYaw;
-         e.prevBodyYaw = this.prevBodyYaw;
-         e.headYaw = this.headYaw;
-         e.prevHeadYaw = this.prevHeadYaw;
-         e.setYaw(this.yaw);
-         e.prevYaw = this.prevYaw;
-         e.setPitch(this.pitch);
-         e.prevPitch = this.prevPitch;
-         e.handSwingProgress = this.swing;
-         e.lastHandSwingProgress = this.lastSwing;
-         e.limbAnimator.pos = this.limbPos;
-         e.limbAnimator.speed = this.limbSpeed;
-         e.limbAnimator.prevSpeed = this.limbPrev;
-         e.age = this.age;
+         e.yBodyRot = this.bodyYaw;
+         e.yBodyRotO = this.prevBodyYaw;
+         e.yHeadRot = this.headYaw;
+         e.yHeadRotO = this.prevHeadYaw;
+         e.setYRot(this.yaw);
+         e.yRotO = this.prevYaw;
+         e.setXRot(this.pitch);
+         e.xRotO = this.prevPitch;
+         e.attackAnim = this.swing;
+         e.oAttackAnim = this.lastSwing;
+         e.walkAnimation.position = this.limbPos;
+         e.walkAnimation.speed = this.limbSpeed;
+         e.walkAnimation.speedOld = this.limbPrev;
+         e.tickCount = this.age;
       }
    }
-
-   @Environment(EnvType.CLIENT)
    static record Snap(
       double x, double y, double z, float bodyYaw, float headYaw, float yaw, float pitch, float limbPos, float limbSpeed, float swing, int age, long time
    ) {

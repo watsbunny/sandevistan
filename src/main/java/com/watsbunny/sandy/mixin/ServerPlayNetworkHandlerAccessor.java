@@ -1,11 +1,11 @@
 package com.watsbunny.sandy.mixin;
 
-import net.minecraft.server.network.ServerPlayNetworkHandler;
+import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin({ServerPlayNetworkHandler.class})
+@Mixin({ServerGamePacketListenerImpl.class})
 public interface ServerPlayNetworkHandlerAccessor {
-   @Accessor("floatingTicks")
+   @Accessor("aboveGroundTickCount")
    void apogee$setFloatingTicks(int var1);
 }
