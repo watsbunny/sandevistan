@@ -124,7 +124,11 @@ public final class GhostTrail {
          for (Entry<Integer, ArrayDeque<GhostTrail.Snap>> en : TRAILS.entrySet()) {
             Entity e = mc.level.getEntity(en.getKey());
             if (e instanceof LivingEntity le && !en.getValue().isEmpty()) {
-               boolean self = e == camera.getEntity();`n               if (self && firstPerson) {`n                  continue;`n               }`n               double bodyX = e.getX();
+               boolean self = e == camera.getEntity();
+               if (self && firstPerson) {
+                  continue;
+               }
+               double bodyX = e.getX();
                double bodyY = e.getY();
                double bodyZ = e.getZ();
                GhostTrail.PoseSwap saved = GhostTrail.PoseSwap.save(le);
