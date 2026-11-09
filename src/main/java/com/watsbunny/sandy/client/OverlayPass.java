@@ -13,6 +13,7 @@ import net.minecraft.client.renderer.MultiBufferSource.BufferSource;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
+import org.joml.Quaternionf;
 
 public final class OverlayPass {
    private static TextureTarget fb;
@@ -51,9 +52,16 @@ public final class OverlayPass {
             fb.clear(Minecraft.ON_OSX);
             fb.copyDepthFrom(main);
             fb.bindWrite(true);
-            PoseStack matrices = ctx.getPoseStack();
             Camera camera = ctx.getCamera();
             Vec3 cam = camera.getPosition();
+            // AFTER_LEVEL runs after LevelRenderer popped the camera rotation from the modelview stack,
+            // so re-apply it manually or the overlay is rendered in camera space (slides when turning).
+            PoseStack matrices = new PoseStack();
+            matrices.mulPose(camera.rotation().conjugate(new Quaternionf()));
+            PoseStack modelView = RenderSystem.getModelViewStack();
+            modelView.pushPose();
+            modelView.setIdentity();
+            RenderSystem.applyModelViewMatrix();
             EntityRenderDispatcher dispatcher = mc.getEntityRenderDispatcher();
             dispatcher.setRenderShadow(false);
 
@@ -76,6 +84,8 @@ public final class OverlayPass {
                ShockRings.render(matrices, camera, ctx.getPartialTick());
                FX.endBatch();
             } finally {
+               modelView.popPose();
+               RenderSystem.applyModelViewMatrix();
                dispatcher.setRenderShadow((Boolean)mc.options.entityShadows().get());
                RenderSystem.enableCull();
                main.bindWrite(true);
