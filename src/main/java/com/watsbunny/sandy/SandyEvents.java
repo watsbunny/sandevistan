@@ -29,7 +29,7 @@ public final class SandyEvents {
 
    @SubscribeEvent
    public static void onLevelTick(TickEvent.LevelTickEvent event) {
-      if (event.phase == TickEvent.Phase.END && event.level instanceof ServerLevel level) {
+      if (event.phase == TickEvent.Phase.START && event.level instanceof ServerLevel level) {
          SandyServer.startWorldTick(level);
       }
    }
