@@ -21,7 +21,7 @@ import net.fabricmc.fabric.api.particle.v1.FabricParticleTypes;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroups;
 import net.minecraft.item.Item.Settings;
-import net.minecraft.particle.DefaultParticleType;
+import net.minecraft.particle.SimpleParticleType;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.util.Identifier;
@@ -33,7 +33,7 @@ import net.minecraft.world.GameRules.Key;
 public final class Sandevistan implements ModInitializer {
    public static final String MOD_ID = "sandevistan";
    public static final Item APOGEE = new ApogeeItem(new Settings().maxCount(1).rarity(Rarity.EPIC));
-   public static final DefaultParticleType MOTE = FabricParticleTypes.simple(true);
+   public static final SimpleParticleType MOTE = FabricParticleTypes.simple(true);
    public static final Key<BooleanRule> SLOWS_PLAYERS = GameRuleRegistry.register(
       "sandevistanSlowsPlayers", Category.PLAYER, GameRuleFactory.createBooleanRule(true, (server, rule) -> SandyServer.markAllDirty())
    );
@@ -45,15 +45,16 @@ public final class Sandevistan implements ModInitializer {
    }
 
    public static Identifier id(String path) {
-      return new Identifier("sandevistan", path);
+      return Identifier.of("sandevistan", path);
    }
 
    public void onInitialize() {
       Registry.register(Registries.ITEM, id("sandevistan"), APOGEE);
       Registry.register(Registries.PARTICLE_TYPE, id("mote"), MOTE);
       SandySounds.register();
+      SandyNet.register();
       ItemGroupEvents.modifyEntriesEvent(ItemGroups.COMBAT).register((ModifyEntries)entries -> entries.add(APOGEE));
-      ServerPlayNetworking.registerGlobalReceiver(SandyNet.TOGGLE, (server, player, handler, buf, sender) -> server.execute(() -> SandyServer.toggle(player)));
+      ServerPlayNetworking.registerGlobalReceiver(SandyNet.TOGGLE, (payload, context) -> SandyServer.toggle(context.player()));
       ServerTickEvents.START_WORLD_TICK.register(SandyServer::startWorldTick);
       ServerTickEvents.END_SERVER_TICK.register(SandyServer::endServerTick);
       ServerTickEvents.END_SERVER_TICK.register(Psychosis::tick);

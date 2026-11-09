@@ -1,8 +1,8 @@
 package com.watsbunny.sandy.cyber;
 
 import com.watsbunny.sandy.Sandevistan;
+import com.watsbunny.sandy.SandyNet;
 import com.watsbunny.sandy.SandyServer;
-import io.netty.buffer.Unpooled;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -11,7 +11,6 @@ import java.util.function.Consumer;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.damage.DamageType;
-import net.minecraft.network.PacketByteBuf;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.server.MinecraftServer;
@@ -19,8 +18,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 
 public final class Psychosis {
-   public static final RegistryKey<DamageType> DAMAGE = RegistryKey.of(RegistryKeys.DAMAGE_TYPE, new Identifier("sandevistan", "cyberpsychosis"));
-   public static final Identifier PACKET = new Identifier("sandevistan", "apogee_psycho");
+   public static final RegistryKey<DamageType> DAMAGE = RegistryKey.of(RegistryKeys.DAMAGE_TYPE, Identifier.of("sandevistan", "cyberpsychosis"));
    public static final int EV_STAGE = 0;
    public static final int EV_RAMPAGE = 1;
    public static final int EV_RAMPAGE_END = 2;
@@ -202,10 +200,7 @@ public final class Psychosis {
    }
 
    static void send(ServerPlayerEntity p, int ev, int value) {
-      PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
-      buf.writeByte(ev);
-      buf.writeVarInt(value);
-      ServerPlayNetworking.send(p, PACKET, buf);
+      ServerPlayNetworking.send(p, new SandyNet.Psycho(ev, value));
    }
 
    public static void testRampage(ServerPlayerEntity p) {

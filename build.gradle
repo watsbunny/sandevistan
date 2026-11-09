@@ -21,19 +21,22 @@ dependencies {
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-    // Satin 1.14.0 is shipped jar-in-jar by the original mod.
-    modImplementation "org.ladysnake:satin:1.14.0"
-    include "org.ladysnake:satin:1.14.0"
+    // Satin 2.0.0 is built for 1.21.1 and is shipped jar-in-jar.
+    modImplementation "org.ladysnake:satin:2.0.0"
+    include "org.ladysnake:satin:2.0.0"
 }
 
 tasks.withType(JavaCompile).configureEach {
-    options.release = 17
+    options.release = 21
     options.compilerArgs += ['-Xdiags:verbose']
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
     withSourcesJar()
 }
 

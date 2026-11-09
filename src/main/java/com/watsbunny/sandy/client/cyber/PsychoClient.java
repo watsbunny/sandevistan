@@ -1,17 +1,17 @@
 package com.watsbunny.sandy.client.cyber;
 
 import com.watsbunny.sandy.Sandevistan;
+import com.watsbunny.sandy.SandyNet;
 import com.watsbunny.sandy.SandySounds;
 import com.watsbunny.sandy.client.SandyClient;
 import com.watsbunny.sandy.client.SandyLayers;
 import com.watsbunny.sandy.client.UiText;
-import com.watsbunny.sandy.cyber.Psychosis;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import ladysnake.satin.api.event.ShaderEffectRenderCallback;
-import ladysnake.satin.api.managed.ManagedShaderEffect;
-import ladysnake.satin.api.managed.ShaderEffectManager;
+import org.ladysnake.satin.api.event.ShaderEffectRenderCallback;
+import org.ladysnake.satin.api.managed.ManagedShaderEffect;
+import org.ladysnake.satin.api.managed.ShaderEffectManager;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -93,16 +93,19 @@ public final class PsychoClient {
    }
 
    public static void init() {
-      ClientPlayNetworking.registerGlobalReceiver(Psychosis.PACKET, (client, handler, buf, sender) -> {
-         int ev = buf.readByte();
-         int value = buf.readVarInt();
-         client.execute(() -> onEvent(ev, value));
-      });
+      ClientPlayNetworking.registerGlobalReceiver(
+         SandyNet.PSYCHO, (payload, context) -> context.client().execute(() -> onEvent(payload.event(), payload.value()))
+      );
       ClientPlayConnectionEvents.DISCONNECT.register((Disconnect)(h, c) -> reset());
       ClientTickEvents.END_CLIENT_TICK.register(PsychoClient::tick);
       ShaderEffectRenderCallback.EVENT.register(PsychoClient::renderPost);
-      HudRenderCallback.EVENT.register(PsychoClient::warnHud);
-      WorldRenderEvents.AFTER_ENTITIES.register((AfterEntities)ctx -> renderHerobrine(ctx.matrixStack(), ctx.consumers(), ctx.camera(), ctx.tickDelta()));
+      HudRenderCallback.EVENT.register((ctx, counter) -> warnHud(ctx, counter.getTickDelta(false)));
+      WorldRenderEvents.AFTER_ENTITIES
+         .register(
+            (AfterEntities)ctx -> renderHerobrine(
+                  ctx.matrixStack(), ctx.consumers(), ctx.camera(), ctx.tickCounter().getTickDelta(false)
+               )
+         );
    }
 
    private static void reset() {
@@ -454,7 +457,7 @@ public final class PsychoClient {
          matrices.scale(-1.0F, -1.0F, 1.0F);
          matrices.translate(0.0F, -1.501F, 0.0F);
          VertexConsumer vc = vcp.getBuffer(RenderLayer.getEntityCutoutNoCull(DefaultSkinHelper.getTexture()));
-         heroModel.render(matrices, vc, light, OverlayTexture.DEFAULT_UV, 1.0F, 1.0F, 1.0F, 1.0F);
+         heroModel.render(matrices, vc, light, OverlayTexture.DEFAULT_UV, -1);
          VertexConsumer g = vcp.getBuffer(SandyLayers.HERO_EYES);
          Matrix4f m = matrices.peek().getPositionMatrix();
 
@@ -468,12 +471,12 @@ public final class PsychoClient {
 
    private static void eye(VertexConsumer g, Matrix4f m, float x, float y, float w, float h, float z) {
       int c = 255;
-      g.vertex(m, x, y, z).color(c, c, c, 255).next();
-      g.vertex(m, x + w, y, z).color(c, c, c, 255).next();
-      g.vertex(m, x + w, y + h, z).color(c, c, c, 255).next();
-      g.vertex(m, x, y, z).color(c, c, c, 255).next();
-      g.vertex(m, x + w, y + h, z).color(c, c, c, 255).next();
-      g.vertex(m, x, y + h, z).color(c, c, c, 255).next();
+      g.vertex(m, x, y, z).color(c, c, c, 255);
+      g.vertex(m, x + w, y, z).color(c, c, c, 255);
+      g.vertex(m, x + w, y + h, z).color(c, c, c, 255);
+      g.vertex(m, x, y, z).color(c, c, c, 255);
+      g.vertex(m, x + w, y + h, z).color(c, c, c, 255);
+      g.vertex(m, x, y + h, z).color(c, c, c, 255);
    }
 
    private static void rampageTick(MinecraftClient mc) {

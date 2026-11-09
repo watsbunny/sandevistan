@@ -217,7 +217,7 @@ final class ShockRings {
    }
 
    static void v(VertexConsumer vc, Matrix4f m, float x, float y, float z, int rgb, float a) {
-      vc.vertex(m, x, y, z).color(rgb >> 16 & 0xFF, rgb >> 8 & 0xFF, rgb & 0xFF, Math.max(0, Math.min(255, (int)(a * 255.0F)))).next();
+      vc.vertex(m, x, y, z).color(rgb >> 16 & 0xFF, rgb >> 8 & 0xFF, rgb & 0xFF, Math.max(0, Math.min(255, (int)(a * 255.0F))));
    }
 
    @Environment(EnvType.CLIENT)

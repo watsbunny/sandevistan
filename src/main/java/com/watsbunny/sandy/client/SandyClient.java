@@ -5,7 +5,6 @@ import com.watsbunny.sandy.SandyNet;
 import com.watsbunny.sandy.SandyWorld;
 import com.watsbunny.sandy.SlowClock;
 import com.watsbunny.sandy.client.cyber.PsychoClient;
-import io.netty.buffer.Unpooled;
 import java.util.ArrayList;
 import java.util.List;
 import net.fabricmc.api.ClientModInitializer;
@@ -28,7 +27,6 @@ import net.minecraft.client.render.entity.PlayerEntityRenderer;
 import net.minecraft.client.util.InputUtil.Type;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
-import net.minecraft.network.PacketByteBuf;
 import net.minecraft.util.math.Vec3d;
 
 @Environment(EnvType.CLIENT)
@@ -42,18 +40,12 @@ public final class SandyClient implements ClientModInitializer {
 
    public void onInitializeClient() {
       KEY = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.sandevistan.toggle", Type.KEYSYM, 86, "key.categories.apogee"));
-      ClientPlayNetworking.registerGlobalReceiver(SandyNet.USERS, (client, handler, buf, sender) -> {
-         ClientUsers.Packet p = ClientUsers.readUsers(buf);
-         client.execute(() -> ClientUsers.applyUsers(p));
-      });
-      ClientPlayNetworking.registerGlobalReceiver(SandyNet.SELF, (client, handler, buf, sender) -> {
-         int flags = buf.readByte();
-         int left = buf.readVarInt();
-         int max = buf.readVarInt();
-         int cd = buf.readVarInt();
-         int cdMax = buf.readVarInt();
-         client.execute(() -> ClientUsers.applySelf(flags, left, max, cd, cdMax));
-      });
+      ClientPlayNetworking.registerGlobalReceiver(SandyNet.USERS, (payload, context) -> context.client().execute(() -> ClientUsers.applyUsers(payload)));
+      ClientPlayNetworking.registerGlobalReceiver(
+         SandyNet.SELF,
+         (payload, context) -> context.client()
+            .execute(() -> ClientUsers.applySelf(payload.flags(), payload.left(), payload.max(), payload.cooldown(), payload.cooldownMax()))
+      );
       ClientPlayConnectionEvents.DISCONNECT.register((Disconnect)(handler, client) -> {
          ClientUsers.clear();
          UserFx.clear();
@@ -70,7 +62,7 @@ public final class SandyClient implements ClientModInitializer {
       ClientTickEvents.START_WORLD_TICK.register(SandyClient::startWorldTick);
       ClientTickEvents.END_CLIENT_TICK.register(SandyClient::endClientTick);
       WorldRenderEvents.LAST.register(OverlayPass::render);
-      HudRenderCallback.EVENT.register(SandyHud::render);
+      HudRenderCallback.EVENT.register((ctx, tickCounter) -> SandyHud.render(ctx, tickCounter.getTickDelta(false)));
       RenderFrame.init();
       PsychoClient.init();
       UiText.init();
@@ -106,7 +98,7 @@ public final class SandyClient implements ClientModInitializer {
 
          while (KEY.wasPressed()) {
             if (mc.currentScreen == null) {
-               ClientPlayNetworking.send(SandyNet.TOGGLE, new PacketByteBuf(Unpooled.buffer()));
+               ClientPlayNetworking.send(new SandyNet.Toggle());
             }
          }
 
@@ -131,7 +123,7 @@ public final class SandyClient implements ClientModInitializer {
    }
 
    public static double now() {
-      return now(MinecraftClient.getInstance().getTickDelta());
+      return now(MinecraftClient.getInstance().getRenderTickCounter().getTickDelta(false));
    }
 
    public static float entityDelta(Entity e, float tickDelta) {

@@ -1,13 +1,9 @@
 {
   "schemaVersion": 1,
   "id": "sandevistan",
-  "version": "1.0.0+1.20.1",
+  "version": "1.0.0+1.21.1",
   "name": "Sandevistan",
-  "description": {
-    "ru_ru": "Сандевистан Militech \"Апогей\" из Cyberpunk: Edgerunners. Установите его в позвоночник, нажмите V — и мир вокруг замедлится, оставляя за вами шлейф послеобразов. Слишком частое использование вызывает киберпсихоз.",
-    "en_us": "The Militech \"Apogee\" Sandevistan from Cyberpunk: Edgerunners. Install it in your spine, press V and the world around you slows to a crawl while you leave a trail of afterimages. Overuse it and cyberpsychosis sets in.",
-    "ja_jp": "『サイバーパンク エッジランナーズ』のミリテク「アポジー」サンデヴィスタン。脊髄に装着してVを押すと、周囲の時間がゆっくりになり、残像の軌跡を残します。使いすぎるとサイバーサイコシスを発症します。"
-  },
+  "description": "The Militech \"Apogee\" Sandevistan from Cyberpunk: Edgerunners. Install it in your spine, press V and the world around you slows to a crawl while you leave a trail of afterimages. Overuse it and cyberpsychosis sets in.",
   "authors": [
     "WatsBunny"
   ],
@@ -35,9 +31,9 @@
   ],
   "accessWidener": "sandy.accesswidener",
   "depends": {
-    "fabricloader": "\u003e\u003d0.15.0",
-    "minecraft": "~1.20.1",
-    "java": "\u003e\u003d17",
+    "fabricloader": "\u003e\u003d0.16.0",
+    "minecraft": "1.21.1",
+    "java": "\u003e\u003d21",
     "fabric-api": "*"
   }
 }

@@ -4,11 +4,11 @@
 
 # Sandevistan
 
-**Киберустановка Militech «Апогей» из Cyberpunk: Edgerunners для Minecraft 1.20.1 (Fabric)**
+**Киберустановка Militech «Апогей» из Cyberpunk: Edgerunners для Minecraft 1.21.1 (Fabric)**
 
-[![Minecraft](https://img.shields.io/badge/Minecraft-1.20.1-62B47A?style=for-the-badge&logo=minecraft&logoColor=white)](https://www.minecraft.net/)
+[![Minecraft](https://img.shields.io/badge/Minecraft-1.21.1-62B47A?style=for-the-badge&logo=minecraft&logoColor=white)](https://www.minecraft.net/)
 [![Fabric](https://img.shields.io/badge/Fabric-0.15.11+-DBB69B?style=for-the-badge&logo=fabric&logoColor=white)](https://fabricmc.net/)
-[![Java](https://img.shields.io/badge/Java-17-E76F00?style=for-the-badge&logo=openjdk&logoColor=white)](https://adoptium.net/)
+[![Java](https://img.shields.io/badge/Java-21-E76F00?style=for-the-badge&logo=openjdk&logoColor=white)](https://adoptium.net/)
 [![Discord](https://img.shields.io/badge/Discord-Сообщество-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/ghxC6H2htE)
 
 [**🇷🇺 Русский**](README.md) · [🇬🇧 English](README.en.md) · [🇯🇵 日本語](README.ja.md)
@@ -44,10 +44,10 @@
 
 | Компонент | Версия |
 |---|---|
-| Minecraft | **1.20.1** |
-| Fabric Loader | **0.15.11+** |
-| Fabric API | **0.92.2+1.20.1** |
-| Java | **17+** |
+| Minecraft | **1.21.1** |
+| Fabric Loader | **0.16.10+** |
+| Fabric API | **0.116.5+1.21.1** |
+| Java | **21+** |
 
 ### Способ 1 — готовый JAR
 
@@ -64,7 +64,7 @@ cd sandevistan
 ./gradlew build
 ```
 
-Готовый файл появится в `build/libs/sandevistan-1.0.0+1.20.1.jar`.
+Готовый файл появится в `build/libs/sandevistan-1.0.0+1.21.1.jar`.
 
 ## 🎮 Управление
 
@@ -126,7 +126,7 @@ sandevistan/
 
 ## 🛠️ Сборка
 
-Проект собран на **JDK 21** с таргетом **Java 17** и **Gradle 8.9**.
+Проект собран на **JDK 21** с таргетом **Java 21** и **Gradle 8.9**.
 
 ```bash
 ./gradlew build       # собрать мод

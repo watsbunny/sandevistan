@@ -7,11 +7,11 @@ import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.Framebuffer;
 import net.minecraft.client.gl.SimpleFramebuffer;
-import net.minecraft.client.render.BufferBuilder;
 import net.minecraft.client.render.Camera;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.VertexConsumerProvider.Immediate;
 import net.minecraft.client.render.entity.EntityRenderDispatcher;
+import net.minecraft.client.util.BufferAllocator;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.Vec3d;
@@ -19,8 +19,8 @@ import net.minecraft.util.math.Vec3d;
 @Environment(EnvType.CLIENT)
 public final class OverlayPass {
    private static SimpleFramebuffer fb;
-   private static final Immediate BODY = VertexConsumerProvider.immediate(new BufferBuilder(65536));
-   static final Immediate FX = VertexConsumerProvider.immediate(new BufferBuilder(262144));
+   private static final Immediate BODY = VertexConsumerProvider.immediate(new BufferAllocator(65536));
+   static final Immediate FX = VertexConsumerProvider.immediate(new BufferAllocator(262144));
 
    private OverlayPass() {
    }
@@ -38,7 +38,8 @@ public final class OverlayPass {
    static void render(WorldRenderContext ctx) {
       MinecraftClient mc = MinecraftClient.getInstance();
       if (mc.world != null) {
-         double now = SandyClient.now(ctx.tickDelta());
+         float tickDelta = ctx.tickCounter().getTickDelta(false);
+         double now = SandyClient.now(tickDelta);
          boolean screen = SandyFx.screenWanted(now);
          boolean ghosts = GhostTrail.hasAny();
          boolean rings = ShockRings.hasAny();
@@ -64,7 +65,7 @@ public final class OverlayPass {
                if (SandyFx.grade(now) > 0.01F) {
                   for (Entity e : ClientUsers.activeEntities(mc.world)) {
                      if ((e != camera.getFocusedEntity() || camera.isThirdPerson()) && !e.isInvisible()) {
-                        float td = ctx.tickDelta();
+                        float td = tickDelta;
                         double x = e.lastRenderX + (e.getX() - e.lastRenderX) * (double)td - cam.x;
                         double y = e.lastRenderY + (e.getY() - e.lastRenderY) * (double)td - cam.y;
                         double z = e.lastRenderZ + (e.getZ() - e.lastRenderZ) * (double)td - cam.z;
@@ -75,8 +76,8 @@ public final class OverlayPass {
                   BODY.draw();
                }
 
-               GhostTrail.render(matrices, camera, ctx.tickDelta());
-               ShockRings.render(matrices, camera, ctx.tickDelta());
+               GhostTrail.render(matrices, camera, tickDelta);
+               ShockRings.render(matrices, camera, tickDelta);
                FX.draw();
             } finally {
                dispatcher.setRenderShadows((Boolean)mc.options.getEntityShadows().getValue());

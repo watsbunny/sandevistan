@@ -7,10 +7,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import com.watsbunny.sandy.SandyNet;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.Entity;
-import net.minecraft.network.PacketByteBuf;
 
 @Environment(EnvType.CLIENT)
 public final class ClientUsers {
@@ -33,23 +33,7 @@ public final class ClientUsers {
       return t == null ? 0 : t;
    }
 
-   static ClientUsers.Packet readUsers(PacketByteBuf buf) {
-      boolean slow = buf.readBoolean();
-      int n = buf.readVarInt();
-      int[] ids = new int[n];
-      int[] flags = new int[n];
-      int[] tiers = new int[n];
-
-      for (int i = 0; i < n; i++) {
-         ids[i] = buf.readVarInt();
-         flags[i] = buf.readByte();
-         tiers[i] = buf.readByte();
-      }
-
-      return new ClientUsers.Packet(slow, ids, flags, tiers);
-   }
-
-   static void applyUsers(ClientUsers.Packet p) {
+   static void applyUsers(SandyNet.Users p) {
       slowPlayers = p.slowPlayers();
       FLAGS.clear();
       TIERS.clear();
@@ -134,9 +118,5 @@ public final class ClientUsers {
       }
 
       return out;
-   }
-
-   @Environment(EnvType.CLIENT)
-   static record Packet(boolean slowPlayers, int[] ids, int[] flags, int[] tiers) {
    }
 }

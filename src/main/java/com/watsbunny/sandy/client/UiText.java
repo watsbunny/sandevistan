@@ -15,6 +15,7 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.ToDoubleFunction;
 import net.fabricmc.api.EnvType;
@@ -23,6 +24,7 @@ import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.Font;
+import net.minecraft.client.font.FontFilterType;
 import net.minecraft.client.font.FontStorage;
 import net.minecraft.client.font.Glyph;
 import net.minecraft.client.font.GlyphRenderer;
@@ -389,7 +391,14 @@ public final class UiText {
          int base = Math.round(t.asc * px);
          Identifier id = Sandevistan.id("apogee_crisp/" + f.name().toLowerCase() + "_" + cap);
          FontStorage storage = new FontStorage(MinecraftClient.getInstance().getTextureManager(), id);
-         storage.setFonts(List.of(new UiText.Crisp(t, px / (float)t.units, base, IntSets.singleton(65))));
+         storage.setFonts(
+            List.of(
+               new Font.FontFilterPair(
+                  new UiText.Crisp(t, px / (float)t.units, base, IntSets.singleton(65)), FontFilterType.FilterMap.NO_FILTER
+               )
+            ),
+            Set.of()
+         );
          STORAGES.put(id, storage);
          sp = new UiText.Spec(id, cap, base);
          SPECS.put(key, sp);
@@ -603,20 +612,35 @@ public final class UiText {
                }
 
                public void upload(int x, int y) {
-                  NativeImage img = new NativeImage(Format.LUMINANCE, CrispGlyph.this.w, CrispGlyph.this.h, false);
-                  img.makeGlyphBitmapSubpixel(
-                     CrispGlyph.this.f.t.info,
-                     CrispGlyph.this.gi,
-                     CrispGlyph.this.w,
-                     CrispGlyph.this.h,
-                     CrispGlyph.this.f.scale,
-                     CrispGlyph.this.f.scale,
-                     0.0F,
-                     0.0F,
-                     0,
-                     0
-                  );
-                  img.upload(0, x, y, 0, 0, CrispGlyph.this.w, CrispGlyph.this.h, false, true);
+                  int w = CrispGlyph.this.w;
+                  int h = CrispGlyph.this.h;
+                  NativeImage img = new NativeImage(Format.LUMINANCE, w, h, false);
+                  ByteBuffer pixels = MemoryUtil.memAlloc(w * h);
+
+                  try {
+                     STBTruetype.stbtt_MakeGlyphBitmapSubpixel(
+                        CrispGlyph.this.f.t.info,
+                        pixels,
+                        w,
+                        h,
+                        w,
+                        CrispGlyph.this.f.scale,
+                        CrispGlyph.this.f.scale,
+                        0.0F,
+                        0.0F,
+                        CrispGlyph.this.gi
+                     );
+
+                     for (int yy = 0; yy < h; yy++) {
+                        for (int xx = 0; xx < w; xx++) {
+                           img.setLuminance(xx, yy, pixels.get(yy * w + xx));
+                        }
+                     }
+                  } finally {
+                     MemoryUtil.memFree(pixels);
+                  }
+
+                  img.upload(0, x, y, 0, 0, w, h, false, true);
                }
             }
          );

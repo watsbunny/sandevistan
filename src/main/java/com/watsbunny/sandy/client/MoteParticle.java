@@ -10,7 +10,7 @@ import net.minecraft.client.particle.SpriteProvider;
 import net.minecraft.client.render.Camera;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.world.ClientWorld;
-import net.minecraft.particle.DefaultParticleType;
+import net.minecraft.particle.SimpleParticleType;
 
 @Environment(EnvType.CLIENT)
 public final class MoteParticle extends SpriteBillboardParticle {
@@ -61,14 +61,14 @@ public final class MoteParticle extends SpriteBillboardParticle {
    }
 
    @Environment(EnvType.CLIENT)
-   public static final class Factory implements ParticleFactory<DefaultParticleType> {
+   public static final class Factory implements ParticleFactory<SimpleParticleType> {
       private final SpriteProvider sprites;
 
       public Factory(SpriteProvider sprites) {
          this.sprites = sprites;
       }
 
-      public Particle createParticle(DefaultParticleType type, ClientWorld world, double x, double y, double z, double vx, double vy, double vz) {
+      public Particle createParticle(SimpleParticleType type, ClientWorld world, double x, double y, double z, double vx, double vy, double vz) {
          return new MoteParticle(world, x, y, z, vx, vy, vz, this.sprites);
       }
    }

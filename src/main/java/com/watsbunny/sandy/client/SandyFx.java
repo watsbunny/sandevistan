@@ -2,8 +2,8 @@ package com.watsbunny.sandy.client;
 
 import com.watsbunny.sandy.Sandevistan;
 import com.watsbunny.sandy.SlowClock;
-import ladysnake.satin.api.managed.ManagedShaderEffect;
-import ladysnake.satin.api.managed.ShaderEffectManager;
+import org.ladysnake.satin.api.managed.ManagedShaderEffect;
+import org.ladysnake.satin.api.managed.ShaderEffectManager;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;

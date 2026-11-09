@@ -4,12 +4,12 @@ import java.util.Optional;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.render.VertexFormats;
 import net.minecraft.client.render.RenderLayer.MultiPhase;
 import net.minecraft.client.render.RenderPhase.TextureBase;
+import net.minecraft.client.render.VertexConsumer;
+import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.VertexConsumerProvider.Immediate;
+import net.minecraft.client.render.VertexFormats;
 import net.minecraft.util.Identifier;
 
 @Environment(EnvType.CLIENT)
@@ -35,11 +35,9 @@ final class GhostConsumers implements VertexConsumerProvider {
    public VertexConsumer getBuffer(RenderLayer layer) {
       if (layer.getVertexFormat() != VertexFormats.POSITION_COLOR_TEXTURE_OVERLAY_LIGHT_NORMAL) {
          return GhostConsumers.Noop.INSTANCE;
-      } else if (layer != RenderLayer.getArmorGlint()
-         && layer != RenderLayer.getArmorEntityGlint()
+      } else if (layer != RenderLayer.getArmorEntityGlint()
          && layer != RenderLayer.getGlint()
          && layer != RenderLayer.getEntityGlint()
-         && layer != RenderLayer.getDirectGlint()
          && layer != RenderLayer.getDirectEntityGlint()
          && layer != RenderLayer.getGlintTranslucent()) {
          Identifier tex = textureOf(layer);
@@ -72,7 +70,7 @@ final class GhostConsumers implements VertexConsumerProvider {
       Noop() {
       }
 
-      public VertexConsumer vertex(double x, double y, double z) {
+      public VertexConsumer vertex(float x, float y, float z) {
          return this;
       }
 
@@ -95,15 +93,6 @@ final class GhostConsumers implements VertexConsumerProvider {
       public VertexConsumer normal(float x, float y, float z) {
          return this;
       }
-
-      public void next() {
-      }
-
-      public void fixedColor(int red, int green, int blue, int alpha) {
-      }
-
-      public void unfixColor() {
-      }
    }
 
    @Environment(EnvType.CLIENT)
@@ -122,7 +111,7 @@ final class GhostConsumers implements VertexConsumerProvider {
          this.a = a;
       }
 
-      public VertexConsumer vertex(double x, double y, double z) {
+      public VertexConsumer vertex(float x, float y, float z) {
          this.d.vertex(x, y, z);
          return this;
       }
@@ -150,16 +139,6 @@ final class GhostConsumers implements VertexConsumerProvider {
       public VertexConsumer normal(float x, float y, float z) {
          this.d.normal(x, y, z);
          return this;
-      }
-
-      public void next() {
-         this.d.next();
-      }
-
-      public void fixedColor(int red, int green, int blue, int alpha) {
-      }
-
-      public void unfixColor() {
       }
    }
 }

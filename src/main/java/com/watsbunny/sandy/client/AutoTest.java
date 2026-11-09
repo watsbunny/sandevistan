@@ -7,7 +7,6 @@ import com.watsbunny.sandy.SlowClock;
 import com.watsbunny.sandy.client.cyber.PsychoClient;
 import com.watsbunny.sandy.cyber.Psychosis;
 import com.watsbunny.sandy.cyber.Spine;
-import io.netty.buffer.Unpooled;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
@@ -32,7 +31,8 @@ import net.minecraft.client.gui.screen.AccessibilityOnboardingScreen;
 import net.minecraft.client.gui.screen.TitleScreen;
 import net.minecraft.client.gui.screen.ingame.InventoryScreen;
 import net.minecraft.client.input.Input;
-import net.minecraft.client.item.TooltipContext;
+import net.minecraft.item.Item.TooltipContext;
+import net.minecraft.item.tooltip.TooltipType;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.option.Perspective;
@@ -43,7 +43,6 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.decoration.ArmorStandEntity;
 import net.minecraft.entity.mob.ZombieEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.network.PacketByteBuf;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.screen.slot.Slot;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -83,14 +82,14 @@ final class AutoTest {
       if (name != null) {
          ClientTickEvents.END_CLIENT_TICK.register(AutoTest::tick);
          if (name.startsWith("mp")) {
-            WorldRenderEvents.END.register((End)ctx -> frame(ctx.tickDelta()));
+            WorldRenderEvents.END.register((End)ctx -> frame(ctx.tickCounter().getTickDelta(false)));
          }
 
          WorldRenderEvents.AFTER_ENTITIES.register((AfterEntities)ctx -> {
             MinecraftClient mc = MinecraftClient.getInstance();
             if (mc.player != null && mc.getCameraEntity() != mc.player && ctx.consumers() != null) {
                Vec3d cam = ctx.camera().getPos();
-               float td = ctx.tickDelta();
+               float td = ctx.tickCounter().getTickDelta(false);
                ClientPlayerEntity pl = mc.player;
                double x = pl.lastRenderX + (pl.getX() - pl.lastRenderX) * (double)td - cam.x;
                double y = pl.lastRenderY + (pl.getY() - pl.lastRenderY) * (double)td - cam.y;
@@ -175,7 +174,7 @@ final class AutoTest {
             }
 
             if (INPUT.enabled && mc.getCameraEntity() != mc.player) {
-               mc.player.forwardSpeed = INPUT.forward;
+               mc.player.input.movementForward = INPUT.forward;
             }
 
             if (INPUT.turn != 0.0F) {
@@ -261,7 +260,8 @@ final class AutoTest {
             level,
             info,
             new GeneratorOptions(20771L, false, false),
-            reg -> ((WorldPreset)reg.get(RegistryKeys.WORLD_PRESET).entryOf(WorldPresets.FLAT).value()).createDimensionsRegistryHolder()
+            reg -> ((WorldPreset)reg.get(RegistryKeys.WORLD_PRESET).entryOf(WorldPresets.FLAT).value()).createDimensionsRegistryHolder(),
+            null
          );
    }
 
@@ -279,7 +279,7 @@ final class AutoTest {
    }
 
    static void toggle(int tick) {
-      at(tick, mc -> ClientPlayNetworking.send(SandyNet.TOGGLE, new PacketByteBuf(Unpooled.buffer())));
+      at(tick, mc -> ClientPlayNetworking.send(new SandyNet.Toggle()));
    }
 
    static void run(int tick, float forward, float turnPerTick) {
@@ -555,7 +555,7 @@ final class AutoTest {
          }
       });
       shot(120, "05_tooltip");
-      at(121, mc -> log("tooltip=" + new ItemStack(Sandevistan.APOGEE).getTooltip(mc.player, TooltipContext.BASIC).stream().map(Text::getString).toList()));
+      at(121, mc -> log("tooltip=" + new ItemStack(Sandevistan.APOGEE).getTooltip(TooltipContext.DEFAULT, mc.player, TooltipType.BASIC).stream().map(Text::getString).toList()));
       at(130, mc -> mc.setScreen(null));
       cmd(132, "sandevistan remove @s");
       state(136, "after_remove");
@@ -641,7 +641,9 @@ final class AutoTest {
             focused.setBoolean(mc, true);
             float yaw0 = mc.player.getYaw();
             dx.setDouble(mc.mouse, 100.0);
-            mc.mouse.updateMouse();
+            java.lang.reflect.Method updateMouse = Mouse.class.getDeclaredMethod("updateMouse", double.class);
+            updateMouse.setAccessible(true);
+            updateMouse.invoke(mc.mouse, 0.0);
             float turned = mc.player.getYaw() - yaw0;
             mc.player.setYaw(yaw0);
             locked.setBoolean(mc.mouse, wasLocked);
@@ -749,7 +751,7 @@ final class AutoTest {
          int kk = k;
          at(k, mc -> {
             if (liveUsing && !ClientUsers.selfActive && ClientUsers.cooldown <= 0 && kk % 20 == 0) {
-               ClientPlayNetworking.send(SandyNet.TOGGLE, new PacketByteBuf(Unpooled.buffer()));
+               ClientPlayNetworking.send(new SandyNet.Toggle());
             }
          });
       }

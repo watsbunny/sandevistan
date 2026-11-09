@@ -2,7 +2,6 @@ package com.watsbunny.sandy;
 
 import com.watsbunny.sandy.cyber.Psychosis;
 import com.watsbunny.sandy.cyber.Spine;
-import io.netty.buffer.Unpooled;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -15,18 +14,18 @@ import net.minecraft.entity.attribute.EntityAttributeModifier;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.attribute.EntityAttributeModifier.Operation;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 
 public final class SandyServer {
    public static final int COOLDOWN = 300;
    public static final int MIN_COOLDOWN = 60;
    public static final int WARN_TICKS = 30;
-   private static final UUID SPEED_ID = UUID.fromString("5a1d3e2c-7f3b-4a8e-9c61-2b7d9e0a4f11");
+   private static final Identifier SPEED_ID = Sandevistan.id("apogee_speed");
    private static final double SPEED_BONUS = 0.35;
    private static final Map<UUID, SandyServer.State> STATES = new HashMap<>();
    private static boolean usersDirty = true;
@@ -92,14 +91,14 @@ public final class SandyServer {
             stop(p, false);
          } else if (s.cooldown > 0) {
             p.sendMessage(Text.translatable("message.sandevistan.cooldown", new Object[]{String.format("%.1f", (float)s.cooldown / 20.0F)}), true);
-            p.playSound(SandySounds.DENY, SoundCategory.PLAYERS, 0.7F, 1.0F);
+            p.playSoundToPlayer(SandySounds.DENY, SoundCategory.PLAYERS, 0.7F, 1.0F);
          } else {
             s.active = true;
             s.left = maxTicks(p);
             Psychosis.onActivate(p);
             EntityAttributeInstance speed = p.getAttributeInstance(EntityAttributes.GENERIC_MOVEMENT_SPEED);
             if (speed != null && speed.getModifier(SPEED_ID) == null) {
-               speed.addTemporaryModifier(new EntityAttributeModifier(SPEED_ID, "Sandevistan", 0.35, Operation.MULTIPLY_TOTAL));
+               speed.addTemporaryModifier(new EntityAttributeModifier(SPEED_ID, 0.35, Operation.ADD_MULTIPLIED_TOTAL));
             }
 
             p.getServerWorld().playSound(null, p.getX(), p.getY(), p.getZ(), SandySounds.ACTIVATE, SoundCategory.PLAYERS, 1.2F, 1.0F);
@@ -183,7 +182,7 @@ public final class SandyServer {
                if (p.isAlive() && !p.isSpectator() && installed(p)) {
                   s.left--;
                   if (s.left > 0 && s.left <= 30 && s.left % 10 == 0) {
-                     p.playSound(SandySounds.WARN, SoundCategory.PLAYERS, 0.8F, 1.0F + (float)(30 - s.left) * 0.01F);
+                     p.playSoundToPlayer(SandySounds.WARN, SoundCategory.PLAYERS, 0.8F, 1.0F + (float)(30 - s.left) * 0.01F);
                   }
 
                   if (s.left <= 0) {
@@ -223,18 +222,21 @@ public final class SandyServer {
          }
       }
 
-      PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
-      buf.writeBoolean(world.getGameRules().getBoolean(Sandevistan.SLOWS_PLAYERS));
-      buf.writeVarInt(list.size());
+      int[] ids = new int[list.size()];
+      int[] flags = new int[list.size()];
+      int[] tiers = new int[list.size()];
 
-      for (ServerPlayerEntity px : list) {
-         buf.writeVarInt(px.getId());
-         buf.writeByte(1 | (active(px) ? 2 : 0));
-         buf.writeByte(tier(px));
+      for (int i = 0; i < list.size(); i++) {
+         ServerPlayerEntity px = list.get(i);
+         ids[i] = px.getId();
+         flags[i] = 1 | (active(px) ? 2 : 0);
+         tiers[i] = tier(px);
       }
 
+      SandyNet.Users payload = new SandyNet.Users(world.getGameRules().getBoolean(Sandevistan.SLOWS_PLAYERS), ids, flags, tiers);
+
       for (ServerPlayerEntity to : world.getPlayers()) {
-         ServerPlayNetworking.send(to, SandyNet.USERS, new PacketByteBuf(buf.copy()));
+         ServerPlayNetworking.send(to, payload);
       }
    }
 
@@ -250,13 +252,7 @@ public final class SandyServer {
             s.sentHash = hash;
          }
 
-         PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
-         buf.writeByte((inst ? 1 : 0) | (act ? 2 : 0));
-         buf.writeVarInt(left);
-         buf.writeVarInt(maxTicks(p));
-         buf.writeVarInt(cd);
-         buf.writeVarInt(cdMax);
-         ServerPlayNetworking.send(p, SandyNet.SELF, buf);
+         ServerPlayNetworking.send(p, new SandyNet.Self((inst ? 1 : 0) | (act ? 2 : 0), left, maxTicks(p), cd, cdMax));
       }
    }
 
