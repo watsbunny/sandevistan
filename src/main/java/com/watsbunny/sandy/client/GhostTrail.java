@@ -125,9 +125,6 @@ public final class GhostTrail {
             Entity e = mc.level.getEntity(en.getKey());
             if (e instanceof LivingEntity le && !en.getValue().isEmpty()) {
                boolean self = e == camera.getEntity();
-               if (self && firstPerson) {
-                  continue;
-               }
                double bodyX = e.getX();
                double bodyY = e.getY();
                double bodyZ = e.getZ();
