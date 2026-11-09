@@ -2,16 +2,16 @@ package com.watsbunny.sandy.mixin;
 
 import com.watsbunny.sandy.SandyWorld;
 import com.watsbunny.sandy.SlowClock;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.server.world.ServerWorld;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin({ServerWorld.class})
+@Mixin({ServerLevel.class})
 public abstract class ServerWorldMixin {
    public ServerWorldMixin() {
    }
@@ -23,9 +23,9 @@ public abstract class ServerWorldMixin {
    )
    private void apogee$slowTime(Entity entity, CallbackInfo ci) {
       SlowClock clock = ((SandyWorld)this).apogee$clock();
-      if (!clock.fired() && !(entity instanceof PlayerEntity) && clock.affects(entity)) {
-         if (entity instanceof LivingEntity living && living.timeUntilRegen > 0) {
-            living.timeUntilRegen--;
+      if (!clock.fired() && !(entity instanceof Player) && clock.affects(entity)) {
+         if (entity instanceof LivingEntity living && living.invulnerableTime > 0) {
+            living.invulnerableTime--;
          }
 
          ci.cancel();

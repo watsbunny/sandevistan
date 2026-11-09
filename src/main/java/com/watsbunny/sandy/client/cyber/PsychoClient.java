@@ -1,60 +1,49 @@
 package com.watsbunny.sandy.client.cyber;
 
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.math.Axis;
 import com.watsbunny.sandy.Sandevistan;
+import com.watsbunny.sandy.SandyNet;
 import com.watsbunny.sandy.SandySounds;
 import com.watsbunny.sandy.client.SandyClient;
 import com.watsbunny.sandy.client.SandyLayers;
 import com.watsbunny.sandy.client.UiText;
-import com.watsbunny.sandy.cyber.Psychosis;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import ladysnake.satin.api.event.ShaderEffectRenderCallback;
-import ladysnake.satin.api.managed.ManagedShaderEffect;
-import ladysnake.satin.api.managed.ShaderEffectManager;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.EndTick;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.Disconnect;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
-import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
-import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents.AfterEntities;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.render.Camera;
-import net.minecraft.client.render.OverlayTexture;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.render.WorldRenderer;
-import net.minecraft.client.render.entity.model.EntityModelLayers;
-import net.minecraft.client.render.entity.model.PlayerEntityModel;
-import net.minecraft.client.sound.PositionedSoundInstance;
-import net.minecraft.client.util.DefaultSkinHelper;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.decoration.ArmorStandEntity;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvent;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.util.Hand;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.hit.HitResult.Type;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.RotationAxis;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.RaycastContext;
-import net.minecraft.world.RaycastContext.FluidHandling;
-import net.minecraft.world.RaycastContext.ShapeType;
+import org.ladysnake.satin.api.event.ShaderEffectRenderCallback;
+import org.ladysnake.satin.api.managed.ManagedShaderEffect;
+import org.ladysnake.satin.api.managed.ShaderEffectManager;
+import net.minecraft.client.Camera;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.model.PlayerModel;
+import net.minecraft.client.model.geom.ModelLayers;
+import net.minecraft.client.renderer.LevelRenderer;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.client.resources.DefaultPlayerSkin;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.Mth;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.decoration.ArmorStand;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.ClipContext.Block;
+import net.minecraft.world.level.ClipContext.Fluid;
+import net.minecraft.world.phys.HitResult.Type;
+import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 
-@Environment(EnvType.CLIENT)
 public final class PsychoClient {
    private static final ManagedShaderEffect POST = ShaderEffectManager.getInstance().manage(Sandevistan.id("shaders/post/psycho.json"));
    private static final Random RNG = new Random();
@@ -77,12 +66,12 @@ public final class PsychoClient {
    private static float rampage;
    private static float prevRampage;
    private static boolean rampageKeys;
-   private static Vec3d hero;
+   private static Vec3 hero;
    private static int heroStart;
    private static int heroSeenAt = -1;
    private static final String[] WARN = new String[]{"NEURAL SYNC RESTORED", "NEURAL SYNC UNSTABLE", "SENSORY CORRUPTION DETECTED", "CYBERPSYCHOSIS"};
    private static final List<Object[]> LATER = new ArrayList<>();
-   private static PlayerEntityModel<?> heroModel;
+   private static PlayerModel<?> heroModel;
    public static boolean testHeroStay;
 
    private PsychoClient() {
@@ -93,16 +82,10 @@ public final class PsychoClient {
    }
 
    public static void init() {
-      ClientPlayNetworking.registerGlobalReceiver(Psychosis.PACKET, (client, handler, buf, sender) -> {
-         int ev = buf.readByte();
-         int value = buf.readVarInt();
-         client.execute(() -> onEvent(ev, value));
-      });
-      ClientPlayConnectionEvents.DISCONNECT.register((Disconnect)(h, c) -> reset());
-      ClientTickEvents.END_CLIENT_TICK.register(PsychoClient::tick);
-      ShaderEffectRenderCallback.EVENT.register(PsychoClient::renderPost);
-      HudRenderCallback.EVENT.register(PsychoClient::warnHud);
-      WorldRenderEvents.AFTER_ENTITIES.register((AfterEntities)ctx -> renderHerobrine(ctx.matrixStack(), ctx.consumers(), ctx.camera(), ctx.tickDelta()));
+   }
+
+   public static void resetClient() {
+      reset();
    }
 
    private static void reset() {
@@ -118,7 +101,7 @@ public final class PsychoClient {
       releaseKeys();
    }
 
-   private static void onEvent(int ev, int value) {
+   public static void onEvent(int ev, int value) {
       switch (ev) {
          case 0:
             int before = stage;
@@ -145,7 +128,7 @@ public final class PsychoClient {
             rampageUntil = ticks + value;
             glitchUntil = ticks + 8;
             play(SandySounds.PSYCHO_STATIC, 0.9F, 0.8F, null);
-            play(SoundEvents.ENTITY_WARDEN_HEARTBEAT, 1.0F, 1.3F, null);
+            play(SoundEvents.WARDEN_HEARTBEAT, 1.0F, 1.3F, null);
             break;
          case 2:
             rampageUntil = ticks;
@@ -172,14 +155,19 @@ public final class PsychoClient {
       return false;
    }
 
-   private static void tick(MinecraftClient mc) {
+   public static void tick(Minecraft mc) {
+      for (int i = LATER.size() - 1; i >= 0; i--) {
+         if ((Integer)LATER.get(i)[0] <= ticks) {
+            ((Runnable)LATER.remove(i)[1]).run();
+         }
+      }
       ticks++;
       prevUnease = unease;
       prevRampage = rampage;
-      if (mc.player != null && mc.world != null && !mc.isPaused()) {
+      if (mc.player != null && mc.level != null && !mc.isPaused()) {
          float target = stage == 0 ? 0.0F : 0.12F + 0.14F * (float)stage;
          unease = unease + (target - unease) * 0.02F;
-         rampage = MathHelper.clamp(rampage + (ticks < rampageUntil ? 0.15F : -0.05F), 0.0F, 1.0F);
+         rampage = Mth.clamp(rampage + (ticks < rampageUntil ? 0.15F : -0.05F), 0.0F, 1.0F);
          if (deathStart >= 0) {
             deathTick(mc);
          } else {
@@ -196,7 +184,7 @@ public final class PsychoClient {
                nextEvent = -1;
             }
 
-            if (active && nextEvent >= 0 && ticks >= nextEvent && mc.currentScreen == null) {
+            if (active && nextEvent >= 0 && ticks >= nextEvent && mc.screen == null) {
                if (stage == 0) {
                   blip();
                } else {
@@ -207,7 +195,7 @@ public final class PsychoClient {
             }
 
             if (stage >= 2 && ticks % (stage == 2 ? 300 : 160) == 0) {
-               play(SoundEvents.ENTITY_WARDEN_HEARTBEAT, 0.22F + 0.08F * (float)stage, 1.0F + 0.15F * (float)stage, null);
+               play(SoundEvents.WARDEN_HEARTBEAT, 0.22F + 0.08F * (float)stage, 1.0F + 0.15F * (float)stage, null);
             }
 
             if (warnUntil > 0 && ticks >= warnUntil) {
@@ -234,10 +222,10 @@ public final class PsychoClient {
       warnUntil = ticks + 110;
    }
 
-   private static void warnHud(DrawContext ctx, float td) {
+   public static void warnHud(GuiGraphics ctx, float td) {
       if (warnUntil > 0) {
-         MinecraftClient mc = MinecraftClient.getInstance();
-         if (!mc.options.hudHidden) {
+         Minecraft mc = Minecraft.getInstance();
+         if (!mc.options.hideGui) {
             float t = (float)(ticks - warnStart) + td;
             float a = Math.min(1.0F, Math.min(t / 4.0F, ((float)(warnUntil - warnStart) - t) / 20.0F));
             if (!(a <= 0.02F)) {
@@ -252,11 +240,11 @@ public final class PsychoClient {
 
                String shown = b.toString();
                float size = warnStage >= 3 ? 16.0F : 11.0F;
-               Identifier font = Sandevistan.id("hd_bold");
+               ResourceLocation font = Sandevistan.id("hd_bold");
                float tw = UiText.hudWidth(font, shown, size);
-               int w = ctx.getScaledWindowWidth();
+               int w = ctx.guiWidth();
                float x = ((float)w - tw) / 2.0F + (float)(r.nextFloat() < 0.3F ? r.nextInt(9) - 4 : 0);
-               float y = (float)ctx.getScaledWindowHeight() * 0.22F;
+               float y = (float)ctx.guiHeight() * 0.22F;
                int alpha = (int)(a * 255.0F) << 24;
                boolean flick = r.nextFloat() < 0.15F;
                if (warnStage == 0) {
@@ -324,7 +312,7 @@ public final class PsychoClient {
       }
    }
 
-   private static void hallucinate(MinecraftClient mc) {
+   private static void hallucinate(Minecraft mc) {
       int pool = stage == 1 ? 4 : 9;
       int k = RNG.nextInt(pool);
       switch (k) {
@@ -339,11 +327,11 @@ public final class PsychoClient {
             play((SoundEvent)SoundEvents.AMBIENT_CAVE.value(), 0.6F + 0.2F * (float)stage, 0.8F + RNG.nextFloat() * 0.4F, behind(mc, 4.0));
             break;
          case 3:
-            Vec3d at = behind(mc, 3.0);
+            Vec3 at = behind(mc, 3.0);
 
             for (int i = 0; i < 4; i++) {
                int delay = i * 7;
-               later(delay, () -> play(SoundEvents.BLOCK_STONE_STEP, 0.5F, 0.9F, at));
+               later(delay, () -> play(SoundEvents.STONE_STEP, 0.5F, 0.9F, at));
             }
             break;
          case 4:
@@ -358,28 +346,28 @@ public final class PsychoClient {
             play(SandySounds.PSYCHO_STATIC, 0.5F, 0.7F, null);
             break;
          case 7:
-            play(SoundEvents.ENTITY_CREEPER_PRIMED, 0.9F, 1.0F, behind(mc, 2.0));
+            play(SoundEvents.CREEPER_PRIMED, 0.9F, 1.0F, behind(mc, 2.0));
             break;
          default:
-            play(SoundEvents.ENTITY_ENDERMAN_STARE, 0.5F + 0.1F * (float)stage, 1.0F, null);
+            play(SoundEvents.ENDERMAN_STARE, 0.5F + 0.1F * (float)stage, 1.0F, null);
       }
    }
 
-   private static Vec3d behind(MinecraftClient mc, double d) {
-      Vec3d look = mc.player.getRotationVector();
-      Vec3d back = new Vec3d(-look.x, 0.0, -look.z);
-      back = back.lengthSquared() < 1.0E-4 ? new Vec3d(0.0, 0.0, 1.0) : back.normalize();
-      return mc.player.getEyePos().add(back.multiply(d)).add(((double)RNG.nextFloat() - 0.5) * 1.5, -0.6, ((double)RNG.nextFloat() - 0.5) * 1.5);
+   private static Vec3 behind(Minecraft mc, double d) {
+      Vec3 look = mc.player.getLookAngle();
+      Vec3 back = new Vec3(-look.x, 0.0, -look.z);
+      back = back.lengthSqr() < 1.0E-4 ? new Vec3(0.0, 0.0, 1.0) : back.normalize();
+      return mc.player.getEyePosition().add(back.scale(d)).add(((double)RNG.nextFloat() - 0.5) * 1.5, -0.6, ((double)RNG.nextFloat() - 0.5) * 1.5);
    }
 
-   private static void play(SoundEvent s, float vol, float pitch, Vec3d at) {
-      MinecraftClient mc = MinecraftClient.getInstance();
+   private static void play(SoundEvent s, float vol, float pitch, Vec3 at) {
+      Minecraft mc = Minecraft.getInstance();
       if (mc.player != null) {
          if (at == null) {
-            mc.getSoundManager().play(PositionedSoundInstance.master(s, pitch, vol));
+            mc.getSoundManager().play(SimpleSoundInstance.forUI(s, pitch, vol));
          } else {
             mc.getSoundManager()
-               .play(new PositionedSoundInstance(s, SoundCategory.AMBIENT, vol, pitch, net.minecraft.util.math.random.Random.create(), at.x, at.y, at.z));
+               .play(new SimpleSoundInstance(s, SoundSource.AMBIENT, vol, pitch, net.minecraft.util.RandomSource.create(), at.x, at.y, at.z));
          }
       }
    }
@@ -388,25 +376,25 @@ public final class PsychoClient {
       LATER.add(new Object[]{ticks + delay, r});
    }
 
-   private static void spawnHerobrine(MinecraftClient mc, boolean close) {
-      Vec3d look = mc.player.getRotationVector();
+   private static void spawnHerobrine(Minecraft mc, boolean close) {
+      Vec3 look = mc.player.getLookAngle();
       double base = Math.atan2(look.z, look.x);
       double ang = close
          ? base + Math.PI + ((double)RNG.nextFloat() - 0.5) * 0.8
          : base + (double)(RNG.nextBoolean() ? 1 : -1) * Math.toRadians((double)(52.0F + RNG.nextFloat() * 22.0F));
       double dist = close ? (double)(4.0F + RNG.nextFloat() * 2.0F) : (double)(14.0F + RNG.nextFloat() * 10.0F);
-      Vec3d p = mc.player.getPos();
+      Vec3 p = mc.player.position();
       double x = p.x + Math.cos(ang) * dist;
       double z = p.z + Math.sin(ang) * dist;
 
       for (int dy = 6; dy >= -10; dy--) {
-         BlockPos b = BlockPos.ofFloored(x, p.y + (double)dy, z);
-         if (mc.world.getBlockState(b.down()).isSolidBlock(mc.world, b.down()) && mc.world.getBlockState(b).isAir() && mc.world.getBlockState(b.up()).isAir()) {
-            hero = new Vec3d((double)b.getX() + 0.5, (double)b.getY(), (double)b.getZ() + 0.5);
+         BlockPos b = BlockPos.containing(x, p.y + (double)dy, z);
+         if (mc.level.getBlockState(b.below()).isRedstoneConductor(mc.level, b.below()) && mc.level.getBlockState(b).isAir() && mc.level.getBlockState(b.above()).isAir()) {
+            hero = new Vec3((double)b.getX() + 0.5, (double)b.getY(), (double)b.getZ() + 0.5);
             heroStart = ticks;
             heroSeenAt = -1;
             if (close) {
-               play(SoundEvents.ENTITY_ENDERMAN_STARE, 0.35F, 0.7F, hero);
+               play(SoundEvents.ENDERMAN_STARE, 0.35F, 0.7F, hero);
             }
 
             return;
@@ -414,13 +402,13 @@ public final class PsychoClient {
       }
    }
 
-   private static void heroTick(MinecraftClient mc) {
+   private static void heroTick(Minecraft mc) {
       if (hero != null) {
-         Vec3d eye = mc.player.getEyePos();
-         Vec3d to = hero.add(0.0, 1.6, 0.0).subtract(eye);
+         Vec3 eye = mc.player.getEyePosition();
+         Vec3 to = hero.add(0.0, 1.6, 0.0).subtract(eye);
          double d = to.length();
-         double cos = to.normalize().dotProduct(mc.player.getRotationVector());
-         boolean visible = mc.world.raycast(new RaycastContext(eye, hero.add(0.0, 1.6, 0.0), ShapeType.VISUAL, FluidHandling.NONE, mc.player)).getType()
+         double cos = to.normalize().dot(mc.player.getLookAngle());
+         boolean visible = mc.level.clip(new ClipContext(eye, hero.add(0.0, 1.6, 0.0), Block.VISUAL, Fluid.NONE, mc.player)).getType()
             == Type.MISS;
          if (cos > Math.cos(Math.toRadians(16.0)) && visible && heroSeenAt < 0 && !testHeroStay) {
             heroSeenAt = ticks;
@@ -437,54 +425,54 @@ public final class PsychoClient {
       }
    }
 
-   private static void renderHerobrine(MatrixStack matrices, VertexConsumerProvider vcp, Camera cam, float tickDelta) {
+   public static void renderHerobrine(PoseStack matrices, MultiBufferSource vcp, Camera cam, float tickDelta) {
       if (hero != null && vcp != null) {
-         MinecraftClient mc = MinecraftClient.getInstance();
+         Minecraft mc = Minecraft.getInstance();
          if (heroModel == null) {
-            heroModel = new PlayerEntityModel(mc.getEntityModelLoader().getModelPart(EntityModelLayers.PLAYER), false);
+            heroModel = new PlayerModel(mc.getEntityModels().bakeLayer(ModelLayers.PLAYER), false);
          }
 
-         Vec3d c = cam.getPos();
-         Vec3d eye = mc.player.getLerpedPos(tickDelta);
+         Vec3 c = cam.getPosition();
+         Vec3 eye = mc.player.getPosition(tickDelta);
          float yaw = (float)Math.toDegrees(Math.atan2(eye.z - hero.z, eye.x - hero.x)) - 90.0F;
-         int light = WorldRenderer.getLightmapCoordinates(mc.world, BlockPos.ofFloored(hero).up());
-         matrices.push();
+         int light = LevelRenderer.getLightColor(mc.level, BlockPos.containing(hero).above());
+         matrices.pushPose();
          matrices.translate(hero.x - c.x, hero.y - c.y, hero.z - c.z);
-         matrices.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(180.0F - yaw));
+         matrices.mulPose(Axis.YP.rotationDegrees(180.0F - yaw));
          matrices.scale(-1.0F, -1.0F, 1.0F);
          matrices.translate(0.0F, -1.501F, 0.0F);
-         VertexConsumer vc = vcp.getBuffer(RenderLayer.getEntityCutoutNoCull(DefaultSkinHelper.getTexture()));
-         heroModel.render(matrices, vc, light, OverlayTexture.DEFAULT_UV, 1.0F, 1.0F, 1.0F, 1.0F);
+         VertexConsumer vc = vcp.getBuffer(RenderType.entityCutoutNoCull(DefaultPlayerSkin.getDefaultTexture()));
+         heroModel.renderToBuffer(matrices, vc, light, OverlayTexture.NO_OVERLAY, -1);
          VertexConsumer g = vcp.getBuffer(SandyLayers.HERO_EYES);
-         Matrix4f m = matrices.peek().getPositionMatrix();
+         Matrix4f m = matrices.last().pose();
 
          for (float ex : new float[]{-3.0F, 1.0F}) {
             eye(g, m, ex / 16.0F, -0.25F, 0.125F, 0.0625F, -0.25125F);
          }
 
-         matrices.pop();
+         matrices.popPose();
       }
    }
 
    private static void eye(VertexConsumer g, Matrix4f m, float x, float y, float w, float h, float z) {
       int c = 255;
-      g.vertex(m, x, y, z).color(c, c, c, 255).next();
-      g.vertex(m, x + w, y, z).color(c, c, c, 255).next();
-      g.vertex(m, x + w, y + h, z).color(c, c, c, 255).next();
-      g.vertex(m, x, y, z).color(c, c, c, 255).next();
-      g.vertex(m, x + w, y + h, z).color(c, c, c, 255).next();
-      g.vertex(m, x, y + h, z).color(c, c, c, 255).next();
+      g.addVertex(m, x, y, z).setColor(c, c, c, 255);
+      g.addVertex(m, x + w, y, z).setColor(c, c, c, 255);
+      g.addVertex(m, x + w, y + h, z).setColor(c, c, c, 255);
+      g.addVertex(m, x, y, z).setColor(c, c, c, 255);
+      g.addVertex(m, x + w, y + h, z).setColor(c, c, c, 255);
+      g.addVertex(m, x, y + h, z).setColor(c, c, c, 255);
    }
 
-   private static void rampageTick(MinecraftClient mc) {
+   private static void rampageTick(Minecraft mc) {
       LivingEntity target = null;
       double best = 256.0;
 
-      for (Entity e : mc.world.getEntities()) {
+      for (Entity e : mc.level.entitiesForRendering()) {
          if (e != mc.player && e instanceof LivingEntity) {
             LivingEntity le = (LivingEntity)e;
-            if (le.isAlive() && !(e instanceof ArmorStandEntity) && !e.isInvisible()) {
-               double d = e.squaredDistanceTo(mc.player);
+            if (le.isAlive() && !(e instanceof ArmorStand) && !e.isInvisible()) {
+               double d = e.distanceToSqr(mc.player);
                if (d < best) {
                   best = d;
                   target = le;
@@ -495,20 +483,20 @@ public final class PsychoClient {
 
       rampageKeys = true;
       if (target == null) {
-         mc.player.setYaw(mc.player.getYaw() + (float)Math.sin((double)ticks * 0.3) * 6.0F);
-         mc.options.forwardKey.setPressed(false);
+         mc.player.setYRot(mc.player.getYRot() + (float)Math.sin((double)ticks * 0.3) * 6.0F);
+         mc.options.keyUp.setDown(false);
       } else {
-         Vec3d to = target.getBoundingBox().getCenter().subtract(mc.player.getEyePos());
+         Vec3 to = target.getBoundingBox().getCenter().subtract(mc.player.getEyePosition());
          float wantYaw = (float)Math.toDegrees(Math.atan2(-to.x, to.z));
          float wantPitch = (float)(-Math.toDegrees(Math.atan2(to.y, Math.sqrt(to.x * to.x + to.z * to.z))));
-         mc.player.setYaw(mc.player.getYaw() + MathHelper.clamp(MathHelper.wrapDegrees(wantYaw - mc.player.getYaw()), -28.0F, 28.0F));
-         mc.player.setPitch(mc.player.getPitch() + MathHelper.clamp(wantPitch - mc.player.getPitch(), -20.0F, 20.0F));
+         mc.player.setYRot(mc.player.getYRot() + Mth.clamp(Mth.wrapDegrees(wantYaw - mc.player.getYRot()), -28.0F, 28.0F));
+         mc.player.setXRot(mc.player.getXRot() + Mth.clamp(wantPitch - mc.player.getXRot(), -20.0F, 20.0F));
          double dist = Math.sqrt(best);
-         mc.options.forwardKey.setPressed(dist > 2.4);
+         mc.options.keyUp.setDown(dist > 2.4);
          mc.player.setSprinting(dist > 2.4);
-         if (dist < 3.2 && mc.player.getAttackCooldownProgress(0.0F) >= 0.9F) {
-            mc.interactionManager.attackEntity(mc.player, target);
-            mc.player.swingHand(Hand.MAIN_HAND);
+         if (dist < 3.2 && mc.player.getAttackStrengthScale(0.0F) >= 0.9F) {
+            mc.gameMode.attack(mc.player, target);
+            mc.player.swing(InteractionHand.MAIN_HAND);
          }
       }
    }
@@ -516,18 +504,18 @@ public final class PsychoClient {
    private static void releaseKeys() {
       if (rampageKeys) {
          rampageKeys = false;
-         KeyBinding.updatePressedStates();
+         KeyMapping.setAll();
       }
    }
 
-   private static void deathTick(MinecraftClient mc) {
+   private static void deathTick(Minecraft mc) {
       int t = ticks - deathStart;
       if (t == 0) {
          play(SandySounds.PSYCHO_RINGING, 0.7F, 1.0F, null);
       }
 
       if (t == 0 || t == 30 || t == 66) {
-         play(SoundEvents.ENTITY_WARDEN_HEARTBEAT, 1.0F, t == 0 ? 1.1F : (t == 30 ? 0.9F : 0.7F), null);
+         play(SoundEvents.WARDEN_HEARTBEAT, 1.0F, t == 0 ? 1.1F : (t == 30 ? 0.9F : 0.7F), null);
       }
 
       if (t == 40) {
@@ -543,11 +531,11 @@ public final class PsychoClient {
       }
    }
 
-   private static void renderPost(float tickDelta) {
-      MinecraftClient mc = MinecraftClient.getInstance();
+   public static void renderPost(float tickDelta) {
+      Minecraft mc = Minecraft.getInstance();
       if (mc.player != null) {
-         float u = MathHelper.lerp(tickDelta, prevUnease, unease);
-         float rp = MathHelper.lerp(tickDelta, prevRampage, rampage);
+         float u = Mth.lerp(tickDelta, prevUnease, unease);
+         float rp = Mth.lerp(tickDelta, prevRampage, rampage);
          float gl = ticks < glitchUntil ? 1.0F : 0.0F;
          float sh = 0.0F;
          if (shiftDur > 0) {
@@ -578,7 +566,7 @@ public final class PsychoClient {
    }
 
    public static void testHerobrine(boolean close) {
-      spawnHerobrine(MinecraftClient.getInstance(), close);
+      spawnHerobrine(Minecraft.getInstance(), close);
    }
 
    public static void testShift(int kind) {
@@ -596,17 +584,7 @@ public final class PsychoClient {
       onEvent(0, st);
    }
 
-   public static Vec3d testHeroPos() {
+   public static Vec3 testHeroPos() {
       return hero;
-   }
-
-   static {
-      ClientTickEvents.END_CLIENT_TICK.register((EndTick)mc -> {
-         for (int i = LATER.size() - 1; i >= 0; i--) {
-            if ((Integer)LATER.get(i)[0] <= ticks) {
-               ((Runnable)LATER.remove(i)[1]).run();
-            }
-         }
-      });
    }
 }

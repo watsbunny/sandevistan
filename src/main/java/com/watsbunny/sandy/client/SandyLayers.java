@@ -1,80 +1,73 @@
 package com.watsbunny.sandy.client;
 
-import com.mojang.blaze3d.platform.GlStateManager.DstFactor;
-import com.mojang.blaze3d.platform.GlStateManager.SrcFactor;
+import com.mojang.blaze3d.platform.GlStateManager.DestFactor;
+import com.mojang.blaze3d.platform.GlStateManager.SourceFactor;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.VertexFormat.Mode;
 import java.util.HashMap;
 import java.util.Map;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.VertexFormats;
-import net.minecraft.client.render.RenderLayer.MultiPhaseParameters;
-import net.minecraft.client.render.RenderPhase.ShaderProgram;
-import net.minecraft.client.render.RenderPhase.Texture;
-import net.minecraft.client.render.RenderPhase.Transparency;
-import net.minecraft.client.render.VertexFormat.DrawMode;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.resources.ResourceLocation;
 
-@Environment(EnvType.CLIENT)
-public final class SandyLayers extends RenderLayer {
-   private static final Transparency ADDITIVE = new Transparency("sandevistan_additive", () -> {
+public final class SandyLayers extends RenderType {
+   private static final TransparencyStateShard ADDITIVE = new TransparencyStateShard("sandevistan_additive", () -> {
       RenderSystem.enableBlend();
-      RenderSystem.blendFuncSeparate(SrcFactor.SRC_ALPHA, DstFactor.ONE, SrcFactor.ZERO, DstFactor.ONE);
+      RenderSystem.blendFuncSeparate(SourceFactor.SRC_ALPHA, DestFactor.ONE, SourceFactor.ZERO, DestFactor.ONE);
    }, () -> {
       RenderSystem.disableBlend();
       RenderSystem.defaultBlendFunc();
    });
-   static final RenderLayer GLOW = RenderLayer.of(
+   static final RenderType GLOW = RenderType.create(
       "sandevistan_glow",
-      VertexFormats.POSITION_COLOR,
-      DrawMode.QUADS,
+      DefaultVertexFormat.POSITION_COLOR,
+      Mode.QUADS,
       8192,
       false,
       false,
-      MultiPhaseParameters.builder()
-         .program(COLOR_PROGRAM)
-         .transparency(ADDITIVE)
-         .cull(DISABLE_CULLING)
-         .depthTest(LEQUAL_DEPTH_TEST)
-         .writeMaskState(COLOR_MASK)
-         .build(false)
+      CompositeState.builder()
+         .setShaderState(POSITION_COLOR_SHADER)
+         .setTransparencyState(ADDITIVE)
+         .setCullState(NO_CULL)
+         .setDepthTestState(LEQUAL_DEPTH_TEST)
+         .setWriteMaskState(COLOR_WRITE)
+         .createCompositeState(false)
    );
-   private static final Map<Identifier, RenderLayer> GHOSTS = new HashMap<>();
-   public static final RenderLayer HERO_EYES = RenderLayer.of(
+   private static final Map<ResourceLocation, RenderType> GHOSTS = new HashMap<>();
+   public static final RenderType HERO_EYES = RenderType.create(
       "sandevistan_apogee_hero_eyes",
-      VertexFormats.POSITION_COLOR,
-      DrawMode.TRIANGLES,
+      DefaultVertexFormat.POSITION_COLOR,
+      Mode.TRIANGLES,
       8192,
       false,
       false,
-      MultiPhaseParameters.builder().program(COLOR_PROGRAM).cull(ENABLE_CULLING).depthTest(LEQUAL_DEPTH_TEST).writeMaskState(ALL_MASK).build(false)
+      CompositeState.builder().setShaderState(POSITION_COLOR_SHADER).setCullState(CULL).setDepthTestState(LEQUAL_DEPTH_TEST).setWriteMaskState(COLOR_DEPTH_WRITE).createCompositeState(false)
    );
 
    private SandyLayers() {
-      super("sandevistan", VertexFormats.POSITION, DrawMode.QUADS, 0, false, false, () -> {
+      super("sandevistan", DefaultVertexFormat.POSITION, Mode.QUADS, 0, false, false, () -> {
       }, () -> {
       });
    }
 
-   static RenderLayer ghost(Identifier texture) {
+   static RenderType ghost(ResourceLocation texture) {
       return GHOSTS.computeIfAbsent(
          texture,
-         t -> RenderLayer.of(
+         t -> RenderType.create(
                "sandevistan_ghost",
-               VertexFormats.POSITION_COLOR_TEXTURE_OVERLAY_LIGHT_NORMAL,
-               DrawMode.QUADS,
+               DefaultVertexFormat.NEW_ENTITY,
+               Mode.QUADS,
                4096,
                true,
                true,
-               MultiPhaseParameters.builder()
-                  .program(new ShaderProgram(() -> SandyShaders.GHOST))
-                  .texture(new Texture(t, false, false))
-                  .transparency(TRANSLUCENT_TRANSPARENCY)
-                  .cull(ENABLE_CULLING)
-                  .depthTest(LEQUAL_DEPTH_TEST)
-                  .writeMaskState(ALL_MASK)
-                  .build(false)
+               CompositeState.builder()
+                  .setShaderState(new ShaderStateShard(() -> SandyShaders.GHOST))
+                  .setTextureState(new TextureStateShard(t, false, false))
+                  .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
+                  .setCullState(CULL)
+                  .setDepthTestState(LEQUAL_DEPTH_TEST)
+                  .setWriteMaskState(COLOR_DEPTH_WRITE)
+                  .createCompositeState(false)
             )
       );
    }

@@ -1,7 +1,7 @@
 package com.watsbunny.sandy.cyber;
 
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.entity.player.Player;
 
 public final class Spine {
    public static final int TIER = 5;
@@ -15,12 +15,12 @@ public final class Spine {
    public Spine() {
    }
 
-   public static Spine of(PlayerEntity p) {
+   public static Spine of(Player p) {
       return ((Spine.Holder)p).apogee$spine();
    }
 
-   public NbtCompound toNbt() {
-      NbtCompound n = new NbtCompound();
+   public CompoundTag toNbt() {
+      CompoundTag n = new CompoundTag();
       n.putBoolean("Installed", this.installed);
       n.putFloat("Psycho", this.psycho);
       n.putFloat("Strain", this.strain);
@@ -28,7 +28,7 @@ public final class Spine {
       return n;
    }
 
-   public void fromNbt(NbtCompound n) {
+   public void fromNbt(CompoundTag n) {
       this.installed = n.getBoolean("Installed");
       this.psycho = n.getFloat("Psycho");
       this.strain = n.getFloat("Strain");

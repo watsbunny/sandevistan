@@ -1,40 +1,36 @@
 package com.watsbunny.sandy.client;
 
 import com.watsbunny.sandy.SandySounds;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.minecraft.client.sound.MovingSoundInstance;
-import net.minecraft.client.sound.SoundInstance;
-import net.minecraft.client.sound.SoundInstance.AttenuationType;
-import net.minecraft.entity.Entity;
-import net.minecraft.sound.SoundCategory;
+import net.minecraft.client.resources.sounds.AbstractTickableSoundInstance;
+import net.minecraft.client.resources.sounds.SoundInstance;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.entity.Entity;
 
-@Environment(EnvType.CLIENT)
-final class SandyLoopSound extends MovingSoundInstance {
+final class SandyLoopSound extends AbstractTickableSoundInstance {
    private final Entity entity;
    private final float full;
    private boolean fading;
 
    SandyLoopSound(Entity entity, boolean self) {
-      super(SandySounds.LOOP, SoundCategory.PLAYERS, SoundInstance.createRandom());
+      super(SandySounds.LOOP, SoundSource.PLAYERS, SoundInstance.createUnseededRandom());
       this.entity = entity;
-      this.repeat = true;
-      this.repeatDelay = 0;
+      this.looping = true;
+      this.delay = 0;
       this.full = self ? 0.75F : 0.45F;
       this.volume = 0.01F;
       if (self) {
          this.relative = true;
-         this.attenuationType = AttenuationType.NONE;
+         this.attenuation = Attenuation.NONE;
          this.x = this.y = this.z = 0.0;
       } else {
-         this.attenuationType = AttenuationType.LINEAR;
+         this.attenuation = Attenuation.LINEAR;
          this.x = entity.getX();
          this.y = entity.getY();
          this.z = entity.getZ();
       }
    }
 
-   public boolean shouldAlwaysPlay() {
+   public boolean canStartSilent() {
       return true;
    }
 
@@ -47,7 +43,7 @@ final class SandyLoopSound extends MovingSoundInstance {
          this.volume -= 0.12F;
          if (this.volume <= 0.0F) {
             this.volume = 0.0F;
-            this.setDone();
+            this.stop();
          }
       } else {
          this.volume = Math.min(this.full, this.volume + 0.1F);

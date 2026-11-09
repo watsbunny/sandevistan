@@ -6,46 +6,46 @@ import com.mojang.brigadier.arguments.FloatArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import java.util.Collection;
 import java.util.List;
-import net.minecraft.command.argument.EntityArgumentType;
-import net.minecraft.server.command.CommandManager;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
+import net.minecraft.commands.arguments.EntityArgument;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
 
 final class SandyCommand {
    private SandyCommand() {
    }
 
-   static void register(CommandDispatcher<ServerCommandSource> d) {
+   static void register(CommandDispatcher<CommandSourceStack> d) {
       d.register(
-         (LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)CommandManager.literal(
+         (LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)((LiteralArgumentBuilder)Commands.literal(
                            "sandevistan"
                         )
-                        .requires(s -> s.hasPermissionLevel(2)))
+                        .requires(s -> s.hasPermission(2)))
                      .then(
-                        ((LiteralArgumentBuilder)CommandManager.literal("install")
-                              .executes(c -> install((ServerCommandSource)c.getSource(), List.of(((ServerCommandSource)c.getSource()).getPlayerOrThrow()))))
+                        ((LiteralArgumentBuilder)Commands.literal("install")
+                              .executes(c -> install((CommandSourceStack)c.getSource(), List.of(((CommandSourceStack)c.getSource()).getPlayerOrException()))))
                            .then(
-                              CommandManager.argument("targets", EntityArgumentType.players())
-                                 .executes(c -> install((ServerCommandSource)c.getSource(), EntityArgumentType.getPlayers(c, "targets")))
+                              Commands.argument("targets", EntityArgument.players())
+                                 .executes(c -> install((CommandSourceStack)c.getSource(), EntityArgument.getPlayers(c, "targets")))
                            )
                      ))
                   .then(
-                     ((LiteralArgumentBuilder)CommandManager.literal("remove")
-                           .executes(c -> remove((ServerCommandSource)c.getSource(), List.of(((ServerCommandSource)c.getSource()).getPlayerOrThrow()))))
+                     ((LiteralArgumentBuilder)Commands.literal("remove")
+                           .executes(c -> remove((CommandSourceStack)c.getSource(), List.of(((CommandSourceStack)c.getSource()).getPlayerOrException()))))
                         .then(
-                           CommandManager.argument("targets", EntityArgumentType.players())
-                              .executes(c -> remove((ServerCommandSource)c.getSource(), EntityArgumentType.getPlayers(c, "targets")))
+                           Commands.argument("targets", EntityArgument.players())
+                              .executes(c -> remove((CommandSourceStack)c.getSource(), EntityArgument.getPlayers(c, "targets")))
                         )
                   ))
                .then(
-                  CommandManager.literal("psycho")
+                  Commands.literal("psycho")
                      .then(
-                        CommandManager.argument("targets", EntityArgumentType.players())
-                           .then(CommandManager.argument("value", FloatArgumentType.floatArg(0.0F, 1000.0F)).executes(c -> {
+                        Commands.argument("targets", EntityArgument.players())
+                           .then(Commands.argument("value", FloatArgumentType.floatArg(0.0F, 1000.0F)).executes(c -> {
                               float v = FloatArgumentType.getFloat(c, "value");
 
-                              for (ServerPlayerEntity p : EntityArgumentType.getPlayers(c, "targets")) {
+                              for (ServerPlayer p : EntityArgument.getPlayers(c, "targets")) {
                                  Psychosis.testSet(p, v);
                               }
 
@@ -53,33 +53,33 @@ final class SandyCommand {
                            }))
                      )
                ))
-            .then(CommandManager.literal("toggle").executes(c -> {
-               SandyServer.toggle(((ServerCommandSource)c.getSource()).getPlayerOrThrow());
+            .then(Commands.literal("toggle").executes(c -> {
+               SandyServer.toggle(((CommandSourceStack)c.getSource()).getPlayerOrException());
                return 1;
             }))
       );
    }
 
-   private static int install(ServerCommandSource src, Collection<ServerPlayerEntity> players) {
+   private static int install(CommandSourceStack src, Collection<ServerPlayer> players) {
       int n = 0;
 
-      for (ServerPlayerEntity p : players) {
+      for (ServerPlayer p : players) {
          if (SandyServer.install(p)) {
             n++;
          }
       }
 
       int done = n;
-      src.sendFeedback(() -> Text.translatable("command.sandevistan.install", new Object[]{done}), true);
+      src.sendSuccess(() -> Component.translatable("command.sandevistan.install", new Object[]{done}), true);
       return n;
    }
 
-   private static int remove(ServerCommandSource src, Collection<ServerPlayerEntity> players) {
-      for (ServerPlayerEntity p : players) {
+   private static int remove(CommandSourceStack src, Collection<ServerPlayer> players) {
+      for (ServerPlayer p : players) {
          SandyServer.uninstall(p);
       }
 
-      src.sendFeedback(() -> Text.translatable("command.sandevistan.remove", new Object[]{players.size()}), true);
+      src.sendSuccess(() -> Component.translatable("command.sandevistan.remove", new Object[]{players.size()}), true);
       return players.size();
    }
 }

@@ -1,83 +1,105 @@
 package com.watsbunny.sandy.client;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import com.watsbunny.sandy.Sandevistan;
 import com.watsbunny.sandy.SandyNet;
 import com.watsbunny.sandy.SandyWorld;
 import com.watsbunny.sandy.SlowClock;
 import com.watsbunny.sandy.client.cyber.PsychoClient;
-import io.netty.buffer.Unpooled;
 import java.util.ArrayList;
 import java.util.List;
-import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.Disconnect;
-import net.fabricmc.fabric.api.client.particle.v1.ParticleFactoryRegistry;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
-import net.fabricmc.fabric.api.client.rendering.v1.LivingEntityFeatureRendererRegistrationCallback;
-import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.render.Camera;
-import net.minecraft.client.render.entity.PlayerEntityRenderer;
-import net.minecraft.client.util.InputUtil.Type;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.entity.Entity;
-import net.minecraft.network.PacketByteBuf;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.client.Camera;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.Vec3;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.RenderFrameEvent;
+import net.neoforged.neoforge.client.event.RenderGuiEvent;
+import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
+import net.neoforged.neoforge.event.tick.LevelTickEvent;
+import net.neoforged.neoforge.network.PacketDistributor;
 
-@Environment(EnvType.CLIENT)
-public final class SandyClient implements ClientModInitializer {
-   public static KeyBinding KEY;
+@EventBusSubscriber(modid = Sandevistan.MOD_ID, value = Dist.CLIENT)
+public final class SandyClient {
+   public static KeyMapping KEY;
    public static long clientTicks;
    public static float realTickDelta;
 
-   public SandyClient() {
+   private SandyClient() {
    }
 
-   public void onInitializeClient() {
-      KEY = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.sandevistan.toggle", Type.KEYSYM, 86, "key.categories.apogee"));
-      ClientPlayNetworking.registerGlobalReceiver(SandyNet.USERS, (client, handler, buf, sender) -> {
-         ClientUsers.Packet p = ClientUsers.readUsers(buf);
-         client.execute(() -> ClientUsers.applyUsers(p));
-      });
-      ClientPlayNetworking.registerGlobalReceiver(SandyNet.SELF, (client, handler, buf, sender) -> {
-         int flags = buf.readByte();
-         int left = buf.readVarInt();
-         int max = buf.readVarInt();
-         int cd = buf.readVarInt();
-         int cdMax = buf.readVarInt();
-         client.execute(() -> ClientUsers.applySelf(flags, left, max, cd, cdMax));
-      });
-      ClientPlayConnectionEvents.DISCONNECT.register((Disconnect)(handler, client) -> {
-         ClientUsers.clear();
-         UserFx.clear();
-         GhostTrail.clear();
-         ShockRings.clear();
-      });
-      SandyShaders.register();
-      ParticleFactoryRegistry.getInstance().register(Sandevistan.MOTE, MoteParticle.Factory::new);
-      LivingEntityFeatureRendererRegistrationCallback.EVENT.register((LivingEntityFeatureRendererRegistrationCallback)(type, renderer, helper, ctx) -> {
-         if (renderer instanceof PlayerEntityRenderer pr) {
-            helper.register(new SpineFeature(pr));
+   @SubscribeEvent
+   public static void onClientTick(ClientTickEvent.Post event) {
+      Minecraft mc = Minecraft.getInstance();
+      if (mc.level != null && mc.player != null) {
+         if (!mc.isPaused()) {
+            clientTicks++;
          }
-      });
-      ClientTickEvents.START_WORLD_TICK.register(SandyClient::startWorldTick);
-      ClientTickEvents.END_CLIENT_TICK.register(SandyClient::endClientTick);
-      WorldRenderEvents.LAST.register(OverlayPass::render);
-      HudRenderCallback.EVENT.register(SandyHud::render);
-      RenderFrame.init();
-      PsychoClient.init();
-      UiText.init();
-      AutoTest.init();
+
+         while (KEY != null && KEY.consumeClick()) {
+            if (mc.screen == null) {
+               PacketDistributor.sendToServer(new SandyNet.Toggle());
+            }
+         }
+
+         UserFx.tick(mc);
+         GhostTrail.tick(mc);
+         ShockRings.tick();
+         SandyFx.tick(mc);
+         PsychoClient.tick(mc);
+      }
    }
 
-   private static void startWorldTick(ClientWorld world) {
+   @SubscribeEvent
+   public static void onLevelTick(LevelTickEvent.Post event) {
+      if (event.getLevel() instanceof ClientLevel world) {
+         startWorldTick(world);
+      }
+   }
+
+   @SubscribeEvent
+   public static void onLoggingOut(ClientPlayerNetworkEvent.LoggingOut event) {
+      ClientUsers.clear();
+      UserFx.clear();
+      GhostTrail.clear();
+      ShockRings.clear();
+      PsychoClient.resetClient();
+   }
+
+   @SubscribeEvent
+   public static void onRenderGui(RenderGuiEvent.Post event) {
+      float delta = event.getPartialTick().getGameTimeDeltaPartialTick(false);
+      SandyHud.render(event.getGuiGraphics(), delta);
+      PsychoClient.warnHud(event.getGuiGraphics(), delta);
+   }
+
+   @SubscribeEvent
+   public static void onRenderLevel(RenderLevelStageEvent event) {
+      if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_ENTITIES) {
+         PsychoClient.renderHerobrine(
+            event.getPoseStack(),
+            Minecraft.getInstance().renderBuffers().bufferSource(),
+            event.getCamera(),
+            event.getPartialTick().getGameTimeDeltaPartialTick(false)
+         );
+      } else if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_LEVEL) {
+         OverlayPass.render(event);
+      }
+   }
+
+   @SubscribeEvent
+   public static void onRenderFrame(RenderFrameEvent.Pre event) {
+      RenderFrame.tick();
+   }
+
+   private static void startWorldTick(ClientLevel world) {
       List<Entity> active = new ArrayList<>(1);
 
       for (Entity e : ClientUsers.activeEntities(world)) {
@@ -98,31 +120,12 @@ public final class SandyClient implements ClientModInitializer {
       c.update(active);
    }
 
-   private static void endClientTick(MinecraftClient mc) {
-      if (mc.world != null && mc.player != null) {
-         if (!mc.isPaused()) {
-            clientTicks++;
-         }
-
-         while (KEY.wasPressed()) {
-            if (mc.currentScreen == null) {
-               ClientPlayNetworking.send(SandyNet.TOGGLE, new PacketByteBuf(Unpooled.buffer()));
-            }
-         }
-
-         UserFx.tick(mc);
-         GhostTrail.tick(mc);
-         ShockRings.tick();
-         SandyFx.tick(mc);
-      }
-   }
-
-   public static SlowClock clock(ClientWorld world) {
+   public static SlowClock clock(ClientLevel world) {
       return ((SandyWorld)world).apogee$clock();
    }
 
    public static SlowClock clock() {
-      ClientWorld w = MinecraftClient.getInstance().world;
+      ClientLevel w = Minecraft.getInstance().level;
       return w == null ? null : clock(w);
    }
 
@@ -131,7 +134,7 @@ public final class SandyClient implements ClientModInitializer {
    }
 
    public static double now() {
-      return now(MinecraftClient.getInstance().getTickDelta());
+      return now(Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(false));
    }
 
    public static float entityDelta(Entity e, float tickDelta) {
@@ -140,26 +143,26 @@ public final class SandyClient implements ClientModInitializer {
    }
 
    public static boolean ticksSlow(SlowClock c, Entity e) {
-      return e instanceof ClientPlayerEntity p ? c.slowsPlayer(p) : c.affects(e);
+      return e instanceof LocalPlayer p ? c.slowsPlayer(p) : c.affects(e);
    }
 
    public static boolean selfSlowed() {
-      MinecraftClient mc = MinecraftClient.getInstance();
+      Minecraft mc = Minecraft.getInstance();
       SlowClock c = clock();
       return c != null && mc.player != null && c.slowsPlayer(mc.player);
    }
 
    public static float viewDelta(float tickDelta) {
-      Entity cam = MinecraftClient.getInstance().getCameraEntity();
+      Entity cam = Minecraft.getInstance().getCameraEntity();
       return cam == null ? tickDelta : entityDelta(cam, tickDelta);
    }
 
    public static boolean cameraInField() {
-      MinecraftClient mc = MinecraftClient.getInstance();
+      Minecraft mc = Minecraft.getInstance();
       SlowClock c = clock();
       if (c != null && c.slowing()) {
-         Camera cam = mc.gameRenderer.getCamera();
-         Vec3d p = cam.getPos();
+         Camera cam = mc.gameRenderer.getMainCamera();
+         Vec3 p = cam.getPosition();
          return c.inField(p.x, p.y, p.z);
       } else {
          return false;

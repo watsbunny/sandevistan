@@ -1,6 +1,12 @@
 package com.watsbunny.sandy.client;
 
 import com.watsbunny.sandy.Sandevistan;
+import com.mojang.blaze3d.font.GlyphInfo;
+import com.mojang.blaze3d.font.GlyphInfo.SpaceGlyphInfo;
+import com.mojang.blaze3d.font.GlyphProvider;
+import com.mojang.blaze3d.font.SheetGlyphInfo;
+import com.mojang.blaze3d.platform.NativeImage;
+import com.mojang.blaze3d.platform.NativeImage.Format;
 import com.mojang.blaze3d.platform.TextureUtil;
 import com.mojang.logging.LogUtils;
 import it.unimi.dsi.fastutil.ints.IntSet;
@@ -15,28 +21,20 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.ToDoubleFunction;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
-import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.Font;
-import net.minecraft.client.font.FontStorage;
-import net.minecraft.client.font.Glyph;
-import net.minecraft.client.font.GlyphRenderer;
-import net.minecraft.client.font.RenderableGlyph;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.font.Glyph.EmptyGlyph;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.texture.NativeImage;
-import net.minecraft.client.texture.NativeImage.Format;
-import net.minecraft.resource.ResourceManager;
-import net.minecraft.resource.ResourceType;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.font.FontOption;
+import net.minecraft.client.gui.font.FontSet;
+import net.minecraft.client.gui.font.glyphs.BakedGlyph;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Style;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.packs.PackType;
+import net.minecraft.server.packs.resources.ResourceManager;
 import org.joml.Matrix4f;
 import org.lwjgl.stb.STBTTFontinfo;
 import org.lwjgl.stb.STBTruetype;
@@ -44,37 +42,28 @@ import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
 import org.slf4j.Logger;
 
-@Environment(EnvType.CLIENT)
 public final class UiText {
-   public static final Identifier MED = Sandevistan.id("hd_med");
-   public static final Identifier SEMI = Sandevistan.id("hd");
-   public static final Identifier BOLD = Sandevistan.id("hd_bold");
-   public static final Identifier ORB = Sandevistan.id("orb");
+   public static final ResourceLocation MED = Sandevistan.id("hd_med");
+   public static final ResourceLocation SEMI = Sandevistan.id("hd");
+   public static final ResourceLocation BOLD = Sandevistan.id("hd_bold");
+   public static final ResourceLocation ORB = Sandevistan.id("orb");
    static final int MIN_CAP = 7;
    private static final Map<UiText.Face, UiText.Ttf> TTF = new EnumMap<>(UiText.Face.class);
    private static final Map<Integer, UiText.Spec> SPECS = new HashMap<>();
-   private static final Map<Identifier, FontStorage> STORAGES = new HashMap<>();
+   private static final Map<ResourceLocation, FontSet> STORAGES = new HashMap<>();
    private static final Logger LOG = LogUtils.getLogger();
-   private static TextRenderer renderer;
+   private static Font renderer;
    private static boolean failed;
 
    private UiText() {
    }
 
-   public static void init() {
-      ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(new SimpleSynchronousResourceReloadListener() {
-         public Identifier getFabricId() {
-            return Sandevistan.id("apogee_ui_text");
-         }
-
-         public void reload(ResourceManager manager) {
-            UiText.clear();
-         }
-      });
+   public static void init(net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent event) {
+      event.registerReloadListener((net.minecraft.server.packs.resources.ResourceManagerReloadListener) manager -> UiText.clear());
    }
 
    private static void clear() {
-      for (FontStorage s : STORAGES.values()) {
+      for (FontSet s : STORAGES.values()) {
          s.close();
       }
 
@@ -90,13 +79,13 @@ public final class UiText {
       failed = false;
    }
 
-   public static void draw(DrawContext ctx, Identifier font, String s, float x, float y, float size, int color) {
+   public static void draw(GuiGraphics ctx, ResourceLocation font, String s, float x, float y, float size, int color) {
       draw(ctx, font, s, x, y, size, color, false);
    }
 
-   public static void draw(DrawContext ctx, Identifier font, String s, float x, float y, float size, int color, boolean shadow) {
+   public static void draw(GuiGraphics ctx, ResourceLocation font, String s, float x, float y, float size, int color, boolean shadow) {
       if (color >>> 24 >= 8 && !s.isEmpty()) {
-         Matrix4f m = ctx.getMatrices().peek().getPositionMatrix();
+         Matrix4f m = ctx.pose().last().pose();
          UiText.Face f = face(font);
          UiText.Ttf t = f == null ? null : ttf(f);
          if (t != null && !(Math.abs(m.m01()) > 1.0E-4F) && !(Math.abs(m.m10()) > 1.0E-4F)) {
@@ -119,8 +108,8 @@ public final class UiText {
       }
    }
 
-   private static void drawLatin(DrawContext ctx, UiText.Face f, UiText.Ttf t, String s, float x, float y, float size, int color, boolean shadow, float gs) {
-      Matrix4f m = ctx.getMatrices().peek().getPositionMatrix();
+   private static void drawLatin(GuiGraphics ctx, UiText.Face f, UiText.Ttf t, String s, float x, float y, float size, int color, boolean shadow, float gs) {
+      Matrix4f m = ctx.pose().last().pose();
       UiText.Spec sp = spec(f, size * m.m00() * gs);
       float gx = m.m00() * x + m.m10() * y + m.m30();
       float gy = m.m01() * x + m.m11() * y + m.m31();
@@ -129,14 +118,14 @@ public final class UiText {
       int baseline = Math.round(mid + (float)sp.cap / 2.0F);
       int left = Math.round(gx * gs);
       int top = baseline - sp.base;
-      ctx.getMatrices().push();
-      ctx.getMatrices().peek().getPositionMatrix().identity().translate((float)left / gs, (float)top / gs, gz).scale(1.0F / gs, 1.0F / gs, 1.0F);
-      ctx.drawText(renderer(), Text.literal(s).setStyle(Style.EMPTY.withFont(sp.id)), 0, 0, color, shadow);
-      ctx.getMatrices().pop();
+      ctx.pose().pushPose();
+      ctx.pose().last().pose().identity().translate((float)left / gs, (float)top / gs, gz).scale(1.0F / gs, 1.0F / gs, 1.0F);
+      ctx.drawString(renderer(), Component.literal(s).setStyle(Style.EMPTY.withFont(sp.id)), 0, 0, color, shadow);
+      ctx.pose().popPose();
    }
 
-   private static void drawVanilla(DrawContext ctx, UiText.Ttf t, String s, float x, float y, float size, int color, boolean shadow, float gs) {
-      Matrix4f m = ctx.getMatrices().peek().getPositionMatrix();
+   private static void drawVanilla(GuiGraphics ctx, UiText.Ttf t, String s, float x, float y, float size, int color, boolean shadow, float gs) {
+      Matrix4f m = ctx.pose().last().pose();
       int k = dot(size * m.m00() * gs);
       float gx = m.m00() * x + m.m10() * y + m.m30();
       float gy = m.m01() * x + m.m11() * y + m.m31();
@@ -145,17 +134,17 @@ public final class UiText {
       int left = Math.round(gx * gs);
       int top = Math.round(mid - 8.0F * (float)k);
       float s2 = 2.0F * (float)k / gs;
-      ctx.getMatrices().push();
-      ctx.getMatrices().peek().getPositionMatrix().identity().translate((float)left / gs, (float)top / gs, gz).scale(s2, s2, 1.0F);
-      ctx.drawText(MinecraftClient.getInstance().textRenderer, s, 0, 0, color, shadow);
-      ctx.getMatrices().pop();
+      ctx.pose().pushPose();
+      ctx.pose().last().pose().identity().translate((float)left / gs, (float)top / gs, gz).scale(s2, s2, 1.0F);
+      ctx.drawString(Minecraft.getInstance().font, s, 0, 0, color, shadow);
+      ctx.pose().popPose();
    }
 
-   public static float width(DrawContext ctx, Identifier font, String s, float size) {
-      return width(ctx.getMatrices().peek().getPositionMatrix().m00(), font, s, size);
+   public static float width(GuiGraphics ctx, ResourceLocation font, String s, float size) {
+      return width(ctx.pose().last().pose().m00(), font, s, size);
    }
 
-   public static float width(float sc, Identifier font, String s, float size) {
+   public static float width(float sc, ResourceLocation font, String s, float size) {
       UiText.Face f = face(font);
       UiText.Ttf t = f == null ? null : ttf(f);
       if (t != null && !(sc <= 0.0F)) {
@@ -176,11 +165,11 @@ public final class UiText {
       }
    }
 
-   public static float hudWidth(Identifier font, String s, float size) {
+   public static float hudWidth(ResourceLocation font, String s, float size) {
       return width(1.0F, font, s, size);
    }
 
-   public static boolean usesVanilla(Identifier font, String s) {
+   public static boolean usesVanilla(ResourceLocation font, String s) {
       UiText.Face f = face(font);
       UiText.Ttf t = f == null ? null : ttf(f);
       if (t == null) {
@@ -201,17 +190,17 @@ public final class UiText {
       }
    }
 
-   public static float vanillaLineH(float sc, Identifier font, float size) {
+   public static float vanillaLineH(float sc, ResourceLocation font, float size) {
       float gs = guiScale();
       return 20.0F * (float)dot(size * sc * gs) / gs / sc;
    }
 
-   public static float vanillaH(float sc, Identifier font, float size) {
+   public static float vanillaH(float sc, ResourceLocation font, float size) {
       float gs = guiScale();
       return 16.0F * (float)dot(size * sc * gs) / gs / sc;
    }
 
-   public static float latinBoost(float sc, Identifier font, float size) {
+   public static float latinBoost(float sc, ResourceLocation font, float size) {
       UiText.Face f = face(font);
       UiText.Ttf t = f == null ? null : ttf(f);
       float px = size * sc * guiScale();
@@ -223,19 +212,19 @@ public final class UiText {
       }
    }
 
-   public static float capMidFrac(Identifier font) {
+   public static float capMidFrac(ResourceLocation font) {
       UiText.Face f = face(font);
       UiText.Ttf t = f == null ? null : ttf(f);
       return t == null ? 0.5F : capMid(t);
    }
 
-   public static float capFrac(Identifier font) {
+   public static float capFrac(ResourceLocation font) {
       UiText.Face f = face(font);
       UiText.Ttf t = f == null ? null : ttf(f);
       return t == null ? 0.7F : t.cap;
    }
 
-   public static boolean inTtf(Identifier font, int cp) {
+   public static boolean inTtf(ResourceLocation font, int cp) {
       UiText.Face f = face(font);
       UiText.Ttf t = f == null ? null : ttf(f);
       return t != null && cp <= 65535 && t.has.get(cp);
@@ -297,7 +286,7 @@ public final class UiText {
    }
 
    private static int breakAt(StringBuilder line, String next) {
-      String noHead = "。、，．・：；！？）」』】〉》ー…ぁぃぅぇぉっゃゅょァィゥェォッャュョ.,!?:;)";
+      String noHead = "РіР‚вЂљРіР‚РѓРїСРЉРїСР‹РіС“В»РїСС™РїСвЂєРїСРѓРїССџРїСвЂ°РіР‚РЊРіР‚РЏРіР‚вЂРіР‚вЂ°РіР‚вЂ№РіС“СРІР‚В¦РіРѓРѓРіРѓС“РіРѓвЂ¦РіРѓвЂЎРіРѓвЂ°РіРѓР€РівЂљС“РівЂљвЂ¦РівЂљвЂЎРівЂљРЋРівЂљР€РівЂљТђРівЂљВ§РівЂљВ©РіС“С“РіС“Р€РіС“ТђРіС“В§.,!?:;)";
       if (!noHead.contains(next)) {
          char c = line.charAt(line.length() - 1);
          if (c == ' ' || cjk(c)) {
@@ -317,11 +306,11 @@ public final class UiText {
    }
 
    private static boolean cjk(char c) {
-      return c >= 12288 && c <= '鿿' || c >= '\uff00' && c <= '\uffef';
+      return c >= 12288 && c <= '\u9fff' || c >= '\uff00' && c <= '\uffef';
    }
 
    private static float guiScale() {
-      return (float)MinecraftClient.getInstance().getWindow().getScaleFactor();
+      return (float)Minecraft.getInstance().getWindow().getGuiScale();
    }
 
    private static float capMid(UiText.Ttf t) {
@@ -333,11 +322,11 @@ public final class UiText {
    }
 
    private static float vanillaW(String s, float sizePx, float gs) {
-      return (float)MinecraftClient.getInstance().textRenderer.getWidth(s) * 2.0F * (float)dot(sizePx) / gs;
+      return (float)Minecraft.getInstance().font.width(s) * 2.0F * (float)dot(sizePx) / gs;
    }
 
    private static float latinPx(UiText.Face f, String s, float sizePx) {
-      return (float)renderer().getWidth(Text.literal(s).setStyle(Style.EMPTY.withFont(spec(f, sizePx).id)));
+      return (float)renderer().width(Component.literal(s).setStyle(Style.EMPTY.withFont(spec(f, sizePx).id)));
    }
 
    private static List<String[]> runs(UiText.Ttf t, String s) {
@@ -365,7 +354,7 @@ public final class UiText {
       return out;
    }
 
-   private static UiText.Face face(Identifier font) {
+   private static UiText.Face face(ResourceLocation font) {
       if (font.equals(MED)) {
          return UiText.Face.MED;
       } else if (font.equals(SEMI)) {
@@ -387,9 +376,16 @@ public final class UiText {
       } else {
          float px = (float)cap / t.cap;
          int base = Math.round(t.asc * px);
-         Identifier id = Sandevistan.id("apogee_crisp/" + f.name().toLowerCase() + "_" + cap);
-         FontStorage storage = new FontStorage(MinecraftClient.getInstance().getTextureManager(), id);
-         storage.setFonts(List.of(new UiText.Crisp(t, px / (float)t.units, base, IntSets.singleton(65))));
+         ResourceLocation id = Sandevistan.id("apogee_crisp/" + f.name().toLowerCase() + "_" + cap);
+         FontSet storage = new FontSet(Minecraft.getInstance().getTextureManager(), id);
+         storage.reload(
+            List.of(
+               new GlyphProvider.Conditional(
+                  new UiText.Crisp(t, px / (float)t.units, base, IntSets.singleton(65)), FontOption.Filter.ALWAYS_PASS
+               )
+            ),
+            Set.of()
+         );
          STORAGES.put(id, storage);
          sp = new UiText.Spec(id, cap, base);
          SPECS.put(key, sp);
@@ -397,10 +393,10 @@ public final class UiText {
       }
    }
 
-   private static TextRenderer renderer() {
+   private static Font renderer() {
       if (renderer == null) {
-         renderer = new TextRenderer(id -> {
-            FontStorage s = STORAGES.get(id);
+         renderer = new Font(id -> {
+            FontSet s = STORAGES.get(id);
             return s != null ? s : STORAGES.get(spec(UiText.Face.MED, 16.0F).id);
          }, false);
       }
@@ -415,7 +411,7 @@ public final class UiText {
 
          try {
             UiText.Ttf var22;
-            try (InputStream in = MinecraftClient.getInstance().getResourceManager().open(Sandevistan.id("font/" + f.file))) {
+            try (InputStream in = Minecraft.getInstance().getResourceManager().open(Sandevistan.id("font/" + f.file))) {
                buf = TextureUtil.readResource(in);
                buf.flip();
                STBTTFontinfo info = STBTTFontinfo.malloc();
@@ -481,20 +477,18 @@ public final class UiText {
       }
    }
 
-   private static void legacy(DrawContext ctx, Identifier font, String s, float x, float y, float size, int color, boolean shadow) {
-      ctx.getMatrices().push();
-      ctx.getMatrices().translate(x, y, 0.0F);
-      ctx.getMatrices().scale(size / 16.0F, size / 16.0F, 1.0F);
-      ctx.drawText(MinecraftClient.getInstance().textRenderer, Text.literal(s).setStyle(Style.EMPTY.withFont(font)), 0, 0, color, shadow);
-      ctx.getMatrices().pop();
+   private static void legacy(GuiGraphics ctx, ResourceLocation font, String s, float x, float y, float size, int color, boolean shadow) {
+      ctx.pose().pushPose();
+      ctx.pose().translate(x, y, 0.0F);
+      ctx.pose().scale(size / 16.0F, size / 16.0F, 1.0F);
+      ctx.drawString(Minecraft.getInstance().font, Component.literal(s).setStyle(Style.EMPTY.withFont(font)), 0, 0, color, shadow);
+      ctx.pose().popPose();
    }
 
-   private static float legacyWidth(Identifier font, String s, float size) {
-      return (float)MinecraftClient.getInstance().textRenderer.getWidth(Text.literal(s).setStyle(Style.EMPTY.withFont(font))) * size / 16.0F;
+   private static float legacyWidth(ResourceLocation font, String s, float size) {
+      return (float)Minecraft.getInstance().font.width(Component.literal(s).setStyle(Style.EMPTY.withFont(font))) * size / 16.0F;
    }
-
-   @Environment(EnvType.CLIENT)
-   private static final class Crisp implements Font {
+   private static final class Crisp implements GlyphProvider {
       final UiText.Ttf t;
       final float scale;
       final int base;
@@ -507,14 +501,14 @@ public final class UiText {
          this.hint = hint;
       }
 
-      public Glyph getGlyph(int codePoint) {
+      public GlyphInfo getGlyph(int codePoint) {
          int gi = STBTruetype.stbtt_FindGlyphIndex(this.t.info, codePoint);
          if (gi == 0) {
             return null;
          } else {
             MemoryStack st = MemoryStack.stackPush();
 
-            Glyph var16;
+            GlyphInfo var16;
             label49: {
                try {
                   IntBuffer adv = st.mallocInt(1);
@@ -533,7 +527,7 @@ public final class UiText {
                      break label49;
                   }
 
-                  var16 = (EmptyGlyph)() -> a;
+                  var16 = (SpaceGlyphInfo)() -> a;
                } catch (Throwable var15) {
                   if (st != null) {
                      try {
@@ -561,28 +555,26 @@ public final class UiText {
          }
       }
 
-      public IntSet getProvidedGlyphs() {
+      public IntSet getSupportedGlyphs() {
          return this.hint;
       }
 
       public void close() {
       }
    }
-
-   @Environment(EnvType.CLIENT)
-   private static record CrispGlyph(UiText.Crisp f, int gi, int x0, int y0, int w, int h, float adv) implements Glyph {
+   private static record CrispGlyph(UiText.Crisp f, int gi, int x0, int y0, int w, int h, float adv) implements GlyphInfo {
       public float getAdvance() {
          return this.adv;
       }
 
-      public GlyphRenderer bake(Function<RenderableGlyph, GlyphRenderer> fn) {
+      public BakedGlyph bake(Function<SheetGlyphInfo, BakedGlyph> fn) {
          return fn.apply(
-            new RenderableGlyph() {
-               public int getWidth() {
+            new SheetGlyphInfo() {
+               public int getPixelWidth() {
                   return CrispGlyph.this.w;
                }
 
-               public int getHeight() {
+               public int getPixelHeight() {
                   return CrispGlyph.this.h;
                }
 
@@ -590,40 +582,53 @@ public final class UiText {
                   return 1.0F;
                }
 
-               public float getBearingX() {
+               public float getBearingLeft() {
                   return (float)CrispGlyph.this.x0;
                }
 
-               public float getAscent() {
+               public float getBearingTop() {
                   return (float)(CrispGlyph.this.f.base + CrispGlyph.this.y0) + 3.0F;
                }
 
-               public boolean hasColor() {
+               public boolean isColored() {
                   return false;
                }
 
                public void upload(int x, int y) {
-                  NativeImage img = new NativeImage(Format.LUMINANCE, CrispGlyph.this.w, CrispGlyph.this.h, false);
-                  img.makeGlyphBitmapSubpixel(
-                     CrispGlyph.this.f.t.info,
-                     CrispGlyph.this.gi,
-                     CrispGlyph.this.w,
-                     CrispGlyph.this.h,
-                     CrispGlyph.this.f.scale,
-                     CrispGlyph.this.f.scale,
-                     0.0F,
-                     0.0F,
-                     0,
-                     0
-                  );
-                  img.upload(0, x, y, 0, 0, CrispGlyph.this.w, CrispGlyph.this.h, false, true);
+                  int w = CrispGlyph.this.w;
+                  int h = CrispGlyph.this.h;
+                  NativeImage img = new NativeImage(Format.LUMINANCE, w, h, false);
+                  ByteBuffer pixels = MemoryUtil.memAlloc(w * h);
+
+                  try {
+                     STBTruetype.stbtt_MakeGlyphBitmapSubpixel(
+                        CrispGlyph.this.f.t.info,
+                        pixels,
+                        w,
+                        h,
+                        w,
+                        CrispGlyph.this.f.scale,
+                        CrispGlyph.this.f.scale,
+                        0.0F,
+                        0.0F,
+                        CrispGlyph.this.gi
+                     );
+
+                     for (int yy = 0; yy < h; yy++) {
+                        for (int xx = 0; xx < w; xx++) {
+                           img.setPixelLuminance(xx, yy, pixels.get(yy * w + xx));
+                        }
+                     }
+                  } finally {
+                     MemoryUtil.memFree(pixels);
+                  }
+
+                  img.upload(0, x, y, 0, 0, w, h, false, true);
                }
             }
          );
       }
    }
-
-   @Environment(EnvType.CLIENT)
    private static enum Face {
       MED("rajdhani-medium.ttf"),
       SEMI("rajdhani-semibold.ttf"),
@@ -636,12 +641,8 @@ public final class UiText {
          this.file = file;
       }
    }
-
-   @Environment(EnvType.CLIENT)
-   private static record Spec(Identifier id, int cap, int base) {
+   private static record Spec(ResourceLocation id, int cap, int base) {
    }
-
-   @Environment(EnvType.CLIENT)
    private static record Ttf(ByteBuffer buf, STBTTFontinfo info, int units, float asc, float cap, BitSet has) {
    }
 }

@@ -1,26 +1,24 @@
 package com.watsbunny.sandy.cyber;
 
 import com.watsbunny.sandy.Sandevistan;
+import com.watsbunny.sandy.SandyNet;
 import com.watsbunny.sandy.SandyServer;
-import io.netty.buffer.Unpooled;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import java.util.function.Consumer;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.entity.damage.DamageType;
-import net.minecraft.network.PacketByteBuf;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
+import net.neoforged.neoforge.network.PacketDistributor;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.Identifier;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.damagesource.DamageType;
 
 public final class Psychosis {
-   public static final RegistryKey<DamageType> DAMAGE = RegistryKey.of(RegistryKeys.DAMAGE_TYPE, new Identifier("sandevistan", "cyberpsychosis"));
-   public static final Identifier PACKET = new Identifier("sandevistan", "apogee_psycho");
+   public static final ResourceKey<DamageType> DAMAGE = ResourceKey.create(Registries.DAMAGE_TYPE, ResourceLocation.fromNamespaceAndPath("sandevistan", "cyberpsychosis"));
    public static final int EV_STAGE = 0;
    public static final int EV_RAMPAGE = 1;
    public static final int EV_RAMPAGE_END = 2;
@@ -65,8 +63,8 @@ public final class Psychosis {
       }
    }
 
-   public static boolean rampaging(ServerPlayerEntity p) {
-      Psychosis.State s = STATES.get(p.getUuid());
+   public static boolean rampaging(ServerPlayer p) {
+      Psychosis.State s = STATES.get(p.getUUID());
       return s != null && s.rampage > 0;
    }
 
@@ -74,18 +72,18 @@ public final class Psychosis {
       return 0.011111111F * (0.6F + l.psycho / 1000.0F) * (1.0F + l.strain / 50.0F);
    }
 
-   private static boolean frozen(ServerPlayerEntity p) {
+   private static boolean frozen(ServerPlayer p) {
       return p.isCreative() || p.isSpectator() || !p.isAlive();
    }
 
-   static boolean enabled(ServerPlayerEntity p) {
+   static boolean enabled(ServerPlayer p) {
       return p.getServer() == null || p.getServer().getGameRules().getBoolean(Sandevistan.CYBERPSYCHOSIS);
    }
 
-   public static void onActivate(ServerPlayerEntity p) {
+   public static void onActivate(ServerPlayer p) {
       if (!frozen(p) && enabled(p)) {
-         Psychosis.State s = STATES.computeIfAbsent(p.getUuid(), x -> new Psychosis.State());
-         activate(Spine.of(p), s, p.getServer().getTicks(), RNG);
+         Psychosis.State s = STATES.computeIfAbsent(p.getUUID(), x -> new Psychosis.State());
+         activate(Spine.of(p), s, p.getServer().getTickCount(), RNG);
       }
    }
 
@@ -120,9 +118,9 @@ public final class Psychosis {
    public static void tick(MinecraftServer server) {
       boolean on = server.getGameRules().getBoolean(Sandevistan.CYBERPSYCHOSIS);
 
-      for (ServerPlayerEntity p : server.getPlayerManager().getPlayerList()) {
+      for (ServerPlayer p : server.getPlayerList().getPlayers()) {
          Spine l = Spine.of(p);
-         Psychosis.State s = STATES.computeIfAbsent(p.getUuid(), k -> new Psychosis.State());
+         Psychosis.State s = STATES.computeIfAbsent(p.getUUID(), k -> new Psychosis.State());
          if (l.psychoSeed == 0L) {
             l.psychoSeed = RNG.nextLong() | 1L;
          }
@@ -132,8 +130,8 @@ public final class Psychosis {
                s.death = -1;
             } else if (++s.death >= 120) {
                s.death = -1;
-               DamageSource src = new DamageSource(p.getServerWorld().getRegistryManager().get(RegistryKeys.DAMAGE_TYPE).entryOf(DAMAGE));
-               p.damage(src, Float.MAX_VALUE);
+               DamageSource src = new DamageSource(p.serverLevel().registryAccess().registryOrThrow(Registries.DAMAGE_TYPE).getHolderOrThrow(DAMAGE));
+               p.hurt(src, Float.MAX_VALUE);
                if (!p.isAlive()) {
                   afterDeath(l);
                }
@@ -184,12 +182,12 @@ public final class Psychosis {
       l.psychoSeed = RNG.nextLong() | 1L;
    }
 
-   public static void forget(ServerPlayerEntity p) {
-      STATES.remove(p.getUuid());
+   public static void forget(ServerPlayer p) {
+      STATES.remove(p.getUUID());
    }
 
-   public static void resync(ServerPlayerEntity p) {
-      Psychosis.State s = STATES.get(p.getUuid());
+   public static void resync(ServerPlayer p) {
+      Psychosis.State s = STATES.get(p.getUUID());
       if (s != null) {
          s.stage = -1;
          s.rampage = 0;
@@ -197,37 +195,34 @@ public final class Psychosis {
       }
    }
 
-   public static float damageBoost(ServerPlayerEntity p) {
+   public static float damageBoost(ServerPlayer p) {
       return rampaging(p) ? 1.35F : 1.0F;
    }
 
-   static void send(ServerPlayerEntity p, int ev, int value) {
-      PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
-      buf.writeByte(ev);
-      buf.writeVarInt(value);
-      ServerPlayNetworking.send(p, PACKET, buf);
+   static void send(ServerPlayer p, int ev, int value) {
+      PacketDistributor.sendToPlayer(p, new SandyNet.Psycho(ev, value));
    }
 
-   public static void testRampage(ServerPlayerEntity p) {
-      Psychosis.State s = STATES.computeIfAbsent(p.getUuid(), k -> new Psychosis.State());
+   public static void testRampage(ServerPlayer p) {
+      Psychosis.State s = STATES.computeIfAbsent(p.getUUID(), k -> new Psychosis.State());
       s.rampage = 300;
       send(p, 1, 300);
    }
 
-   public static void testSet(ServerPlayerEntity p, float v) {
+   public static void testSet(ServerPlayer p, float v) {
       Spine.of(p).psycho = v;
       resync(p);
    }
 
-   public static void testSetStrain(ServerPlayerEntity p, float v) {
+   public static void testSetStrain(ServerPlayer p, float v) {
       Spine.of(p).strain = v;
-      Psychosis.State s = STATES.get(p.getUuid());
+      Psychosis.State s = STATES.get(p.getUUID());
       if (s != null) {
          s.last = Integer.MIN_VALUE;
       }
    }
 
-   public static String testState(ServerPlayerEntity p) {
+   public static String testState(ServerPlayer p) {
       Spine l = Spine.of(p);
       return String.format("psycho=%.2f strain=%.2f stage=%d installed=%s", l.psycho, l.strain, stageOf(l), l.installed);
    }
@@ -374,3 +369,4 @@ public final class Psychosis {
       }
    }
 }
+

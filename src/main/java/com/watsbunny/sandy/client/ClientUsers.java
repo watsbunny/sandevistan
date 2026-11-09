@@ -5,14 +5,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.entity.Entity;
-import net.minecraft.network.PacketByteBuf;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.world.entity.Entity;
+import com.watsbunny.sandy.SandyNet;
 
-@Environment(EnvType.CLIENT)
 public final class ClientUsers {
    private static final Map<Integer, Integer> FLAGS = new HashMap<>();
    public static boolean selfInstalled;
@@ -33,23 +30,7 @@ public final class ClientUsers {
       return t == null ? 0 : t;
    }
 
-   static ClientUsers.Packet readUsers(PacketByteBuf buf) {
-      boolean slow = buf.readBoolean();
-      int n = buf.readVarInt();
-      int[] ids = new int[n];
-      int[] flags = new int[n];
-      int[] tiers = new int[n];
-
-      for (int i = 0; i < n; i++) {
-         ids[i] = buf.readVarInt();
-         flags[i] = buf.readByte();
-         tiers[i] = buf.readByte();
-      }
-
-      return new ClientUsers.Packet(slow, ids, flags, tiers);
-   }
-
-   static void applyUsers(ClientUsers.Packet p) {
+   static void applyUsers(SandyNet.Users p) {
       slowPlayers = p.slowPlayers();
       FLAGS.clear();
       TIERS.clear();
@@ -59,7 +40,7 @@ public final class ClientUsers {
          TIERS.put(p.ids()[i], p.tiers()[i]);
       }
 
-      MinecraftClient mc = MinecraftClient.getInstance();
+      Minecraft mc = Minecraft.getInstance();
       if (mc.player != null && selfInstalled) {
          FLAGS.put(mc.player.getId(), 1 | (selfActive ? 2 : 0));
       }
@@ -77,7 +58,7 @@ public final class ClientUsers {
       cooldown = cd;
       cooldownMax = Math.max(1, cdMax);
       selfAt = (double)SandyClient.clientTicks;
-      MinecraftClient mc = MinecraftClient.getInstance();
+      Minecraft mc = Minecraft.getInstance();
       if (mc.player != null) {
          if (selfInstalled) {
             FLAGS.put(mc.player.getId(), 1 | (selfActive ? 2 : 0));
@@ -108,12 +89,12 @@ public final class ClientUsers {
       return (flags(e) & 2) != 0;
    }
 
-   public static List<Entity> activeEntities(ClientWorld world) {
+   public static List<Entity> activeEntities(ClientLevel world) {
       List<Entity> out = new ArrayList<>(1);
 
       for (Entry<Integer, Integer> en : FLAGS.entrySet()) {
          if ((en.getValue() & 2) != 0) {
-            Entity e = world.getEntityById(en.getKey());
+            Entity e = world.getEntity(en.getKey());
             if (e != null) {
                out.add(e);
             }
@@ -123,20 +104,16 @@ public final class ClientUsers {
       return out;
    }
 
-   public static List<Entity> installedEntities(ClientWorld world) {
+   public static List<Entity> installedEntities(ClientLevel world) {
       List<Entity> out = new ArrayList<>(1);
 
       for (Integer id : FLAGS.keySet()) {
-         Entity e = world.getEntityById(id);
+         Entity e = world.getEntity(id);
          if (e != null) {
             out.add(e);
          }
       }
 
       return out;
-   }
-
-   @Environment(EnvType.CLIENT)
-   static record Packet(boolean slowPlayers, int[] ids, int[] flags, int[] tiers) {
    }
 }

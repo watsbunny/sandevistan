@@ -1,87 +1,85 @@
 package com.watsbunny.sandy.client;
 
+import com.mojang.blaze3d.pipeline.RenderTarget;
+import com.mojang.blaze3d.pipeline.TextureTarget;
 import com.mojang.blaze3d.systems.RenderSystem;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gl.Framebuffer;
-import net.minecraft.client.gl.SimpleFramebuffer;
-import net.minecraft.client.render.BufferBuilder;
-import net.minecraft.client.render.Camera;
-import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.render.VertexConsumerProvider.Immediate;
-import net.minecraft.client.render.entity.EntityRenderDispatcher;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.entity.Entity;
-import net.minecraft.util.math.Vec3d;
+import com.mojang.blaze3d.vertex.ByteBufferBuilder;
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
+import net.minecraft.client.Camera;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.MultiBufferSource.BufferSource;
+import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.Vec3;
 
-@Environment(EnvType.CLIENT)
 public final class OverlayPass {
-   private static SimpleFramebuffer fb;
-   private static final Immediate BODY = VertexConsumerProvider.immediate(new BufferBuilder(65536));
-   static final Immediate FX = VertexConsumerProvider.immediate(new BufferBuilder(262144));
+   private static TextureTarget fb;
+   private static final BufferSource BODY = MultiBufferSource.immediate(new ByteBufferBuilder(65536));
+   static final BufferSource FX = MultiBufferSource.immediate(new ByteBufferBuilder(262144));
 
    private OverlayPass() {
    }
 
-   public static Framebuffer target() {
+   public static RenderTarget target() {
       return fb;
    }
 
    public static boolean active(float tickDelta) {
-      return MinecraftClient.getInstance().world == null
+      return Minecraft.getInstance().level == null
          ? false
          : SandyFx.screenWanted(SandyClient.now(tickDelta)) || GhostTrail.hasAny() || ShockRings.hasAny();
    }
 
-   static void render(WorldRenderContext ctx) {
-      MinecraftClient mc = MinecraftClient.getInstance();
-      if (mc.world != null) {
-         double now = SandyClient.now(ctx.tickDelta());
+   static void render(RenderLevelStageEvent ctx) {
+      Minecraft mc = Minecraft.getInstance();
+      if (mc.level != null) {
+         float tickDelta = ctx.getPartialTick().getGameTimeDeltaPartialTick(false);
+         double now = SandyClient.now(tickDelta);
          boolean screen = SandyFx.screenWanted(now);
          boolean ghosts = GhostTrail.hasAny();
          boolean rings = ShockRings.hasAny();
          if (screen || ghosts || rings) {
-            Framebuffer main = mc.getFramebuffer();
+            RenderTarget main = mc.getMainRenderTarget();
             if (fb == null) {
-               fb = new SimpleFramebuffer(main.textureWidth, main.textureHeight, true, MinecraftClient.IS_SYSTEM_MAC);
+               fb = new TextureTarget(main.width, main.height, true, Minecraft.ON_OSX);
                fb.setClearColor(0.0F, 0.0F, 0.0F, 0.0F);
-            } else if (fb.textureWidth != main.textureWidth || fb.textureHeight != main.textureHeight) {
-               fb.resize(main.textureWidth, main.textureHeight, MinecraftClient.IS_SYSTEM_MAC);
+            } else if (fb.width != main.width || fb.height != main.height) {
+               fb.resize(main.width, main.height, Minecraft.ON_OSX);
             }
 
-            fb.clear(MinecraftClient.IS_SYSTEM_MAC);
+            fb.clear(Minecraft.ON_OSX);
             fb.copyDepthFrom(main);
-            fb.beginWrite(true);
-            MatrixStack matrices = ctx.matrixStack();
-            Camera camera = ctx.camera();
-            Vec3d cam = camera.getPos();
+            fb.bindWrite(true);
+            PoseStack matrices = ctx.getPoseStack();
+            Camera camera = ctx.getCamera();
+            Vec3 cam = camera.getPosition();
             EntityRenderDispatcher dispatcher = mc.getEntityRenderDispatcher();
-            dispatcher.setRenderShadows(false);
+            dispatcher.setRenderShadow(false);
 
             try {
                if (SandyFx.grade(now) > 0.01F) {
-                  for (Entity e : ClientUsers.activeEntities(mc.world)) {
-                     if ((e != camera.getFocusedEntity() || camera.isThirdPerson()) && !e.isInvisible()) {
-                        float td = ctx.tickDelta();
-                        double x = e.lastRenderX + (e.getX() - e.lastRenderX) * (double)td - cam.x;
-                        double y = e.lastRenderY + (e.getY() - e.lastRenderY) * (double)td - cam.y;
-                        double z = e.lastRenderZ + (e.getZ() - e.lastRenderZ) * (double)td - cam.z;
-                        dispatcher.render(e, x, y, z, e.getYaw(td), td, matrices, BODY, dispatcher.getLight(e, td));
+                  for (Entity e : ClientUsers.activeEntities(mc.level)) {
+                     if ((e != camera.getEntity() || camera.isDetached()) && !e.isInvisible()) {
+                        float td = tickDelta;
+                        double x = e.xOld + (e.getX() - e.xOld) * (double)td - cam.x;
+                        double y = e.yOld + (e.getY() - e.yOld) * (double)td - cam.y;
+                        double z = e.zOld + (e.getZ() - e.zOld) * (double)td - cam.z;
+                        dispatcher.render(e, x, y, z, e.getViewYRot(td), td, matrices, BODY, dispatcher.getPackedLightCoords(e, td));
                      }
                   }
 
-                  BODY.draw();
+                  BODY.endBatch();
                }
 
-               GhostTrail.render(matrices, camera, ctx.tickDelta());
-               ShockRings.render(matrices, camera, ctx.tickDelta());
-               FX.draw();
+               GhostTrail.render(matrices, camera, tickDelta);
+               ShockRings.render(matrices, camera, tickDelta);
+               FX.endBatch();
             } finally {
-               dispatcher.setRenderShadows((Boolean)mc.options.getEntityShadows().getValue());
+               dispatcher.setRenderShadow((Boolean)mc.options.entityShadows().get());
                RenderSystem.enableCull();
-               main.beginWrite(true);
+               main.bindWrite(true);
             }
 
             SandyFx.prepared = true;

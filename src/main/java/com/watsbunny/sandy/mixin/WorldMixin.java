@@ -2,11 +2,11 @@ package com.watsbunny.sandy.mixin;
 
 import com.watsbunny.sandy.SandyWorld;
 import com.watsbunny.sandy.SlowClock;
-import net.minecraft.world.World;
+import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 
-@Mixin({World.class})
+@Mixin({Level.class})
 public abstract class WorldMixin implements SandyWorld {
    @Unique
    private final SlowClock apogee$clock = new SlowClock();

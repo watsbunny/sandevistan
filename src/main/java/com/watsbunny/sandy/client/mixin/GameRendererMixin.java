@@ -2,17 +2,14 @@ package com.watsbunny.sandy.client.mixin;
 
 import com.watsbunny.sandy.client.SandyClient;
 import com.watsbunny.sandy.client.SandyFx;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.minecraft.client.render.GameRenderer;
-import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.renderer.GameRenderer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Environment(EnvType.CLIENT)
 @Mixin({GameRenderer.class})
 public abstract class GameRendererMixin {
    public GameRendererMixin() {
@@ -22,19 +19,19 @@ public abstract class GameRendererMixin {
       method = {"renderWorld"},
       at = {@At(
          value = "INVOKE",
-         target = "Lnet/minecraft/client/render/GameRenderer;renderHand(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/Camera;F)V"
+         target = "Lnet/minecraft/client/render/GameRenderer;renderHand(Lnet/minecraft/client/render/Camera;FLorg/joml/Matrix4f;)V"
       )}
    )
-   private void apogee$beforeHand(float tickDelta, long limitTime, MatrixStack matrices, CallbackInfo ci) {
-      SandyFx.renderPost(tickDelta);
+   private void apogee$beforeHand(DeltaTracker tickCounter, CallbackInfo ci) {
+      SandyFx.renderPost(tickCounter.getGameTimeDeltaPartialTick(false));
    }
 
    @Inject(
       method = {"renderWorld"},
       at = {@At("TAIL")}
    )
-   private void apogee$tail(float tickDelta, long limitTime, MatrixStack matrices, CallbackInfo ci) {
-      SandyFx.renderPost(tickDelta);
+   private void apogee$tail(DeltaTracker tickCounter, CallbackInfo ci) {
+      SandyFx.renderPost(tickCounter.getGameTimeDeltaPartialTick(false));
    }
 
    @ModifyArg(
@@ -53,9 +50,9 @@ public abstract class GameRendererMixin {
       method = {"renderWorld"},
       at = @At(
          value = "INVOKE",
-         target = "Lnet/minecraft/client/render/GameRenderer;renderHand(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/Camera;F)V"
+         target = "Lnet/minecraft/client/render/GameRenderer;renderHand(Lnet/minecraft/client/render/Camera;FLorg/joml/Matrix4f;)V"
       ),
-      index = 2
+      index = 1
    )
    private float apogee$handDelta(float tickDelta) {
       return SandyClient.viewDelta(tickDelta);
@@ -89,7 +86,7 @@ public abstract class GameRendererMixin {
       method = {"renderWorld"},
       at = @At(
          value = "INVOKE",
-         target = "Lnet/minecraft/client/render/GameRenderer;updateTargetedEntity(F)V"
+         target = "Lnet/minecraft/client/render/GameRenderer;updateCrosshairTarget(F)V"
       ),
       index = 0
    )

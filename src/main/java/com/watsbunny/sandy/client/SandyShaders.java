@@ -1,32 +1,32 @@
 package com.watsbunny.sandy.client;
 
+import com.mojang.blaze3d.shaders.Uniform;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.watsbunny.sandy.Sandevistan;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.fabricmc.fabric.api.client.rendering.v1.CoreShaderRegistrationCallback;
-import net.minecraft.client.gl.GlUniform;
-import net.minecraft.client.gl.ShaderProgram;
-import net.minecraft.client.render.VertexFormats;
+import java.io.IOException;
+import net.minecraft.client.renderer.ShaderInstance;
+import net.neoforged.neoforge.client.event.RegisterShadersEvent;
 
-@Environment(EnvType.CLIENT)
 final class SandyShaders {
-   static ShaderProgram GHOST;
+   static ShaderInstance GHOST;
 
    private SandyShaders() {
    }
 
-   static void register() {
-      CoreShaderRegistrationCallback.EVENT
-         .register(
-            (CoreShaderRegistrationCallback)ctx -> ctx.register(
-                  Sandevistan.id("ghost"), VertexFormats.POSITION_COLOR_TEXTURE_OVERLAY_LIGHT_NORMAL, p -> GHOST = p
-               )
+   static void register(RegisterShadersEvent event) {
+      try {
+         event.registerShader(
+            new ShaderInstance(event.getResourceProvider(), Sandevistan.id("ghost"), DefaultVertexFormat.NEW_ENTITY),
+            shader -> GHOST = shader
          );
+      } catch (IOException e) {
+         throw new RuntimeException("Failed to register Sandevistan ghost shader", e);
+      }
    }
 
    static void setTime(float t) {
       if (GHOST != null) {
-         GlUniform u = GHOST.getUniform("Time");
+         Uniform u = GHOST.getUniform("Time");
          if (u != null) {
             u.set(t);
          }

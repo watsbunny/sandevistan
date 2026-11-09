@@ -1,52 +1,65 @@
 plugins {
-    id 'fabric-loom' version '1.7.4'
-    id 'java'
+    id 'java-library'
+    id 'net.neoforged.moddev' version '2.0.91'
 }
 
 version = project.mod_version
-group = project.maven_group
+group = project.mod_group_id
 
 base {
-    archivesName = project.archives_base_name
+    archivesName = project.mod_id
 }
 
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
 repositories {
+    mavenLocal()
     mavenCentral()
     maven { url = 'https://maven.ladysnake.org/releases' }
 }
 
-dependencies {
-    minecraft "com.mojang:minecraft:${project.minecraft_version}"
-    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
-    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+neoForge {
+    version = project.neo_version
+    accessTransformers.from 'src/main/resources/META-INF/accesstransformer.cfg'
 
-    // Satin 1.14.0 is shipped jar-in-jar by the original mod.
-    modImplementation "org.ladysnake:satin:1.14.0"
-    include "org.ladysnake:satin:1.14.0"
+    runs {
+        client {
+            client()
+        }
+        server {
+            server()
+            programArgument '--nogui'
+        }
+    }
+
+    mods {
+        "${mod_id}" {
+            sourceSet(sourceSets.main)
+        }
+    }
+}
+
+dependencies {
+    implementation "org.ladysnake:satin:2.0.1-neoforge+1.21.1"
 }
 
 tasks.withType(JavaCompile).configureEach {
-    options.release = 17
-    options.compilerArgs += ['-Xdiags:verbose']
+    options.encoding = 'UTF-8'
 }
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
-    withSourcesJar()
+tasks.named('processResources') {
+    inputs.property 'version', project.version
+    filesMatching(['META-INF/neoforge.mods.toml']) {
+        expand(
+                mod_version: project.version,
+                minecraft_version: project.minecraft_version,
+                neo_version: project.neo_version
+        )
+    }
 }
 
-loom {
-    accessWidenerPath = file('src/main/resources/sandy.accesswidener')
-}
-
-// Keep mod metadata out of the sources jar so it can't be mistaken for a runnable mod.
-tasks.named('sourcesJar') {
-    exclude 'fabric.mod.json'
-    exclude 'sandy.accesswidener'
-    exclude 'sandy.mixins.json'
-    exclude 'sandy.client.mixins.json'
-    exclude 'sandevistan-refmap.json'
-    exclude 'client-sandevistan-refmap.json'
+jar {
+    manifest.attributes([
+            'MixinConfigs': "sandy.mixins.json,sandy.client.mixins.json"
+    ])
 }

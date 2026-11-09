@@ -4,18 +4,14 @@ import com.watsbunny.sandy.Sandevistan;
 import com.watsbunny.sandy.client.cyber.PsychoClient;
 import java.lang.reflect.Method;
 import java.util.Random;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
 
-@Environment(EnvType.CLIENT)
 final class SandyHud {
-   private static final Identifier ICON = Sandevistan.id("textures/gui/cyber/sandevistan.png");
-   private static final Identifier F_BOLD = UiText.BOLD;
+   private static final ResourceLocation ICON = Sandevistan.id("textures/gui/cyber/sandevistan.png");
+   private static final ResourceLocation F_BOLD = UiText.BOLD;
    private static final int READY = -13176326;
    private static final int GREEN = -12714098;
    private static final int RED = -962983;
@@ -29,10 +25,10 @@ final class SandyHud {
    private SandyHud() {
    }
 
-   static void render(DrawContext ctx, float tickDelta) {
-      MinecraftClient mc = MinecraftClient.getInstance();
-      if (ClientUsers.selfInstalled && !mc.options.hudHidden && mc.player != null) {
-         int h = ctx.getScaledWindowHeight();
+   static void render(GuiGraphics ctx, float tickDelta) {
+      Minecraft mc = Minecraft.getInstance();
+      if (ClientUsers.selfInstalled && !mc.options.hideGui && mc.player != null) {
+         int h = ctx.guiHeight();
          int s = 18;
          int y = h - 10 - s;
          boolean capri = capriHud();
@@ -87,9 +83,9 @@ final class SandyHud {
          }
 
          cutFill(ctx, x, y, s, -1207300590);
-         ctx.drawTexture(ICON, x + 2, y + 2, s - 4, s - 4, 0.0F, 0.0F, 256, 256, 256, 256);
+         ctx.blit(ICON, x + 2, y + 2, s - 4, s - 4, 0.0F, 0.0F, 256, 256, 256, 256);
          if (dim) {
-            int hgt = Math.round((float)(s - 2) * (1.0F - MathHelper.clamp(bar, 0.0F, 1.0F)));
+            int hgt = Math.round((float)(s - 2) * (1.0F - Mth.clamp(bar, 0.0F, 1.0F)));
             ctx.fill(x + 1, y + 1, x + s - 1, y + 1 + hgt, -1340078064);
             ctx.fill(x + 1, y + 1 + hgt, x + s - 1, y + 2 + hgt, -1426109878);
          }
@@ -110,12 +106,12 @@ final class SandyHud {
          }
 
          if (!ready) {
-            int bw = Math.round((float)(s - 2) * MathHelper.clamp(bar, 0.0F, 1.0F));
+            int bw = Math.round((float)(s - 2) * Mth.clamp(bar, 0.0F, 1.0F));
             ctx.fill(x + 1, y + s + 2, x + s - 1, y + s + 3, -1441648594);
             ctx.fill(x + 1, y + s + 2, x + 1 + bw, y + s + 3, barColor);
          }
 
-         String kn = SandyClient.KEY.getBoundKeyLocalizedText().getString().toUpperCase();
+         String kn = SandyClient.KEY.getTranslatedKeyMessage().getString().toUpperCase();
          if (kn.length() > 3) {
             kn = kn.substring(0, 3);
          }
@@ -137,14 +133,14 @@ final class SandyHud {
       }
    }
 
-   private static void cutFill(DrawContext ctx, int x, int y, int s, int color) {
+   private static void cutFill(GuiGraphics ctx, int x, int y, int s, int color) {
       for (int r = 0; r < s; r++) {
          int cut = Math.max(0, 4 - r);
          ctx.fill(x, y + r, x + s - cut, y + r + 1, color);
       }
    }
 
-   private static void cutFrame(DrawContext ctx, int x, int y, int s, int color) {
+   private static void cutFrame(GuiGraphics ctx, int x, int y, int s, int color) {
       ctx.fill(x, y + s - 1, x + s, y + s, color);
       ctx.fill(x, y, x + 1, y + s, color);
       ctx.fill(x, y, x + s - 4, y + 1, color);
@@ -158,7 +154,7 @@ final class SandyHud {
    private static boolean capriHud() {
       if (!capriChecked) {
          capriChecked = true;
-         if (FabricLoader.getInstance().isModLoaded("capri")) {
+         if (net.neoforged.fml.ModList.get().isLoaded("capri")) {
             try {
                capriInstalled = Class.forName("com.ikeda.sandevistan.client.capri.CapriClient").getMethod("installed");
             } catch (LinkageError | ReflectiveOperationException var2) {

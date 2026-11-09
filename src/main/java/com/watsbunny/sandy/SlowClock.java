@@ -2,9 +2,9 @@ package com.watsbunny.sandy;
 
 import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.Vec3;
 
 public final class SlowClock {
    public static final float SLOW_RATE = 0.15F;
@@ -19,7 +19,7 @@ public final class SlowClock {
    private long ticks;
    private boolean slowPlayers = true;
    private final List<Entity> users = new ArrayList<>();
-   private final List<Vec3d> anchors = new ArrayList<>();
+   private final List<Vec3> anchors = new ArrayList<>();
 
    public SlowClock() {
    }
@@ -31,7 +31,7 @@ public final class SlowClock {
          this.anchors.clear();
 
          for (Entity e : active) {
-            this.anchors.add(e.getPos());
+            this.anchors.add(e.position());
          }
       }
 
@@ -95,8 +95,8 @@ public final class SlowClock {
       } else {
          double r2 = 4096.0;
 
-         for (Vec3d a : this.anchors) {
-            if (a.squaredDistanceTo(x, y, z) < r2) {
+         for (Vec3 a : this.anchors) {
+            if (a.distanceToSqr(x, y, z) < r2) {
                return true;
             }
          }
@@ -121,7 +121,7 @@ public final class SlowClock {
       return this.slowPlayers;
    }
 
-   public boolean slowsPlayer(PlayerEntity p) {
+   public boolean slowsPlayer(Player p) {
       if (!(this.phase <= 0.0F) && this.slowPlayers && !p.isSpectator()) {
          for (Entity u : this.users) {
             if (u == p) {
@@ -138,7 +138,7 @@ public final class SlowClock {
    public boolean affects(Entity e) {
       if (this.phase <= 0.0F) {
          return false;
-      } else if (e instanceof PlayerEntity) {
+      } else if (e instanceof Player) {
          return false;
       } else {
          for (Entity u : this.users) {
