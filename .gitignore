@@ -21,3 +21,7 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Bundled runtime libraries
+!libs/
+!libs/*.jar

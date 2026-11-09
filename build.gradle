@@ -48,7 +48,9 @@ mixin {
 }
 
 dependencies {
-    implementation "org.ladysnake:satin:1.14.0-neoforge+1.20.1"
+    implementation files('libs/satin-1.14.0-neoforge+1.20.1.jar')
+    additionalRuntimeClasspath files('libs/satin-1.14.0-neoforge+1.20.1.jar')
+    jarJar files('libs/satin-1.14.0-neoforge+1.20.1.jar')
     compileOnly "io.github.llamalad7:mixinextras-common:0.3.5"
     implementation "io.github.llamalad7:mixinextras-forge:0.3.5"
     jarJar(implementation("io.github.llamalad7:mixinextras-forge:0.3.5"))
