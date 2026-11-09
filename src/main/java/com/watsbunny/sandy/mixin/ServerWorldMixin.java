@@ -17,7 +17,7 @@ public abstract class ServerWorldMixin {
    }
 
    @Inject(
-      method = {"tickEntity"},
+      method = {"tickNonPassenger"},
       at = {@At("HEAD")},
       cancellable = true
    )

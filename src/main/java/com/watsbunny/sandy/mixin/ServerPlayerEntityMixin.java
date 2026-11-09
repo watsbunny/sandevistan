@@ -14,7 +14,7 @@ public abstract class ServerPlayerEntityMixin {
    }
 
    @Inject(
-      method = {"playerTick"},
+      method = {"doTick"},
       at = {@At("HEAD")},
       cancellable = true
    )

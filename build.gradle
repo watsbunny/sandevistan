@@ -40,8 +40,7 @@ neoForge {
 }
 
 dependencies {
-    implementation files('libs/satin-2.0.1-neoforge+1.21.1.jar')
-    additionalRuntimeClasspath files('libs/satin-2.0.1-neoforge+1.21.1.jar')
+    compileOnly files('libs/satin-2.0.1-neoforge+1.21.1.jar')
     jarJar files('libs/satin-2.0.1-neoforge+1.21.1.jar')
 }
 

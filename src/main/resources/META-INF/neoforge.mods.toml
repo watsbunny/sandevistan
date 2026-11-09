@@ -10,6 +10,12 @@ displayName="Sandevistan"
 authors="WatsBunny"
 description='''The Militech "Apogee" Sandevistan from Cyberpunk: Edgerunners. Install it in your spine, press V and the world around you slows to a crawl while you leave a trail of afterimages. Overuse it and cyberpsychosis sets in.'''
 
+[[mixins]]
+config="sandy.mixins.json"
+
+[[mixins]]
+config="sandy.client.mixins.json"
+
 [[dependencies.sandevistan]]
 modId="neoforge"
 type="required"

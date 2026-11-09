@@ -16,7 +16,7 @@ public abstract class ClientPlayerInteractionManagerMixin {
    }
 
    @Inject(
-      method = {"updateBlockBreakingProgress"},
+      method = {"continueDestroyBlock"},
       at = {@At("HEAD")},
       cancellable = true
    )

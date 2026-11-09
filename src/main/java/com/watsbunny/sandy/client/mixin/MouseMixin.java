@@ -13,10 +13,10 @@ public abstract class MouseMixin {
    }
 
    @ModifyArg(
-      method = {"updateMouse"},
+      method = {"turnPlayer"},
       at = @At(
          value = "INVOKE",
-         target = "Lnet/minecraft/client/network/ClientPlayerEntity;changeLookDirection(DD)V"
+         target = "Lnet/minecraft/client/player/LocalPlayer;turn(DD)V"
       ),
       index = 0
    )
@@ -25,10 +25,10 @@ public abstract class MouseMixin {
    }
 
    @ModifyArg(
-      method = {"updateMouse"},
+      method = {"turnPlayer"},
       at = @At(
          value = "INVOKE",
-         target = "Lnet/minecraft/client/network/ClientPlayerEntity;changeLookDirection(DD)V"
+         target = "Lnet/minecraft/client/player/LocalPlayer;turn(DD)V"
       ),
       index = 1
    )

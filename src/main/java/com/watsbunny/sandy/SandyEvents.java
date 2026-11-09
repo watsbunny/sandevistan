@@ -16,6 +16,11 @@ public final class SandyEvents {
    }
 
    @SubscribeEvent
+   public static void onRegisterCommands(net.neoforged.neoforge.event.RegisterCommandsEvent event) {
+      SandyCommand.register(event.getDispatcher());
+   }
+
+   @SubscribeEvent
    public static void onServerTick(ServerTickEvent.Post event) {
       SandyServer.endServerTick(event.getServer());
       Psychosis.tick(event.getServer());

@@ -23,7 +23,7 @@ public abstract class PlayerEntityMixin implements Spine.Holder {
    }
 
    @Inject(
-      method = {"writeCustomDataToNbt"},
+      method = {"addAdditionalSaveData"},
       at = {@At("TAIL")}
    )
    private void apogee$write(CompoundTag nbt, CallbackInfo ci) {
@@ -31,7 +31,7 @@ public abstract class PlayerEntityMixin implements Spine.Holder {
    }
 
    @Inject(
-      method = {"readCustomDataFromNbt"},
+      method = {"readAdditionalSaveData"},
       at = {@At("TAIL")}
    )
    private void apogee$read(CompoundTag nbt, CallbackInfo ci) {

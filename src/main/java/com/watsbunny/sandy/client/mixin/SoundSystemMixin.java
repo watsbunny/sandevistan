@@ -15,7 +15,7 @@ public abstract class SoundSystemMixin {
    }
 
    @Inject(
-      method = {"getAdjustedPitch"},
+      method = {"calculatePitch"},
       at = {@At("RETURN")},
       cancellable = true
    )

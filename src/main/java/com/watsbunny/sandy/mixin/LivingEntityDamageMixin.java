@@ -15,7 +15,7 @@ public abstract class LivingEntityDamageMixin {
    }
 
    @Inject(
-      method = {"modifyAppliedDamage"},
+      method = {"getDamageAfterMagicAbsorb"},
       at = {@At("RETURN")},
       cancellable = true
    )

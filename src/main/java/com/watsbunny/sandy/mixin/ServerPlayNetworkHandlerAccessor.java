@@ -6,6 +6,6 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 
 @Mixin({ServerGamePacketListenerImpl.class})
 public interface ServerPlayNetworkHandlerAccessor {
-   @Accessor("floatingTicks")
+   @Accessor("aboveGroundTickCount")
    void apogee$setFloatingTicks(int var1);
 }

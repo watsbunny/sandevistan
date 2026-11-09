@@ -31,7 +31,7 @@ public abstract class ParticleManagerMixin {
    }
 
    @ModifyVariable(
-      method = {"renderParticles"},
+      method = {"render"},
       at = @At("HEAD"),
       argsOnly = true
    )

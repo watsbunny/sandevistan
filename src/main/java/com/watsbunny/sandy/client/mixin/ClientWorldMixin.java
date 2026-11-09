@@ -16,7 +16,7 @@ public abstract class ClientWorldMixin {
    }
 
    @Inject(
-      method = {"tickEntity"},
+      method = {"tickNonPassenger"},
       at = {@At("HEAD")},
       cancellable = true
    )

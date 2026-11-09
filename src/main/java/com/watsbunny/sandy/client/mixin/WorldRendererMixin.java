@@ -29,10 +29,10 @@ public abstract class WorldRendererMixin {
    }
 
    @Redirect(
-      method = {"renderWeather"},
+      method = {"renderSnowAndRain"},
       at = @At(
          value = "FIELD",
-         target = "Lnet/minecraft/client/render/WorldRenderer;ticks:I",
+         target = "Lnet/minecraft/client/renderer/LevelRenderer;ticks:I",
          opcode = 180
       )
    )
@@ -42,7 +42,7 @@ public abstract class WorldRendererMixin {
    }
 
    @ModifyVariable(
-      method = {"renderWeather"},
+      method = {"renderSnowAndRain"},
       at = @At("HEAD"),
       argsOnly = true
    )

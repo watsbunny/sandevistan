@@ -16,10 +16,10 @@ public abstract class GameRendererMixin {
    }
 
    @Inject(
-      method = {"renderWorld"},
+      method = {"renderLevel"},
       at = {@At(
          value = "INVOKE",
-         target = "Lnet/minecraft/client/render/GameRenderer;renderHand(Lnet/minecraft/client/render/Camera;FLorg/joml/Matrix4f;)V"
+         target = "Lnet/minecraft/client/renderer/GameRenderer;renderItemInHand(Lnet/minecraft/client/Camera;FLorg/joml/Matrix4f;)V"
       )}
    )
    private void apogee$beforeHand(DeltaTracker tickCounter, CallbackInfo ci) {
@@ -27,7 +27,7 @@ public abstract class GameRendererMixin {
    }
 
    @Inject(
-      method = {"renderWorld"},
+      method = {"renderLevel"},
       at = {@At("TAIL")}
    )
    private void apogee$tail(DeltaTracker tickCounter, CallbackInfo ci) {
@@ -35,10 +35,10 @@ public abstract class GameRendererMixin {
    }
 
    @ModifyArg(
-      method = {"renderWorld"},
+      method = {"renderLevel"},
       at = @At(
          value = "INVOKE",
-         target = "Lnet/minecraft/client/render/Camera;update(Lnet/minecraft/world/BlockView;Lnet/minecraft/entity/Entity;ZZF)V"
+         target = "Lnet/minecraft/client/Camera;setup(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/world/entity/Entity;ZZF)V"
       ),
       index = 4
    )
@@ -47,10 +47,10 @@ public abstract class GameRendererMixin {
    }
 
    @ModifyArg(
-      method = {"renderWorld"},
+      method = {"renderLevel"},
       at = @At(
          value = "INVOKE",
-         target = "Lnet/minecraft/client/render/GameRenderer;renderHand(Lnet/minecraft/client/render/Camera;FLorg/joml/Matrix4f;)V"
+         target = "Lnet/minecraft/client/renderer/GameRenderer;renderItemInHand(Lnet/minecraft/client/Camera;FLorg/joml/Matrix4f;)V"
       ),
       index = 1
    )
@@ -59,10 +59,10 @@ public abstract class GameRendererMixin {
    }
 
    @ModifyArg(
-      method = {"renderWorld"},
+      method = {"renderLevel"},
       at = @At(
          value = "INVOKE",
-         target = "Lnet/minecraft/client/render/GameRenderer;bobView(Lnet/minecraft/client/util/math/MatrixStack;F)V"
+         target = "Lnet/minecraft/client/renderer/GameRenderer;bobView(Lcom/mojang/blaze3d/vertex/PoseStack;F)V"
       ),
       index = 1
    )
@@ -71,10 +71,10 @@ public abstract class GameRendererMixin {
    }
 
    @ModifyArg(
-      method = {"renderWorld"},
+      method = {"renderLevel"},
       at = @At(
          value = "INVOKE",
-         target = "Lnet/minecraft/client/render/GameRenderer;tiltViewWhenHurt(Lnet/minecraft/client/util/math/MatrixStack;F)V"
+         target = "Lnet/minecraft/client/renderer/GameRenderer;bobHurt(Lcom/mojang/blaze3d/vertex/PoseStack;F)V"
       ),
       index = 1
    )
@@ -83,10 +83,10 @@ public abstract class GameRendererMixin {
    }
 
    @ModifyArg(
-      method = {"renderWorld"},
+      method = {"renderLevel"},
       at = @At(
          value = "INVOKE",
-         target = "Lnet/minecraft/client/render/GameRenderer;updateCrosshairTarget(F)V"
+         target = "Lnet/minecraft/client/renderer/GameRenderer;pick(F)V"
       ),
       index = 0
    )

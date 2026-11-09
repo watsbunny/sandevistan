@@ -15,7 +15,7 @@ public abstract class LivingEntityMixin {
    }
 
    @ModifyVariable(
-      method = {"updateTrackedPositionAndAngles"},
+      method = {"lerpTo"},
       at = @At("HEAD"),
       argsOnly = true
    )
